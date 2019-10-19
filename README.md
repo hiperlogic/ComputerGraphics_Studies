@@ -65,5 +65,5 @@ Atom works somewhat like Visual Studio Code, VIm and EMacs have extensions as we
 
 Or, just click the build button (or calling the build command) in one of the mentioned editors (VSCode, Atom, VIm, EMacs)
 
-Next Branch 00: The initial application framework: Configuring and instancing a Window (OpenGL|--Vulkan--)
+Next Branch 00: The initial application framework: Configuring and instancing a Window
 
