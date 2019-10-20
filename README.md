@@ -57,11 +57,11 @@ Follow there, test compiling the program and then you ar already set for the ver
 Although this project is aimed to use Visual Studio Code, you can use other editors, or even IDEs, if you are more prone to or more experienced with them.
 Atom works somewhat like Visual Studio Code, VIm and EMacs have extensions as well. The main issue in using CMake is to let the process as system independent as possible. So, basically, within each project conclusion all you need to do is:
 
-1- Generate the build files via CMake.
-2- Configure the options (when available), also using CMake.
-3- Open the Solution (Visual Studio) or the shell with current working directory where the Makefiles are.
-4- Compile the solution (either clicking a button on Visual Studio or calling make in the shell).
-5- Install the generated project (We will not really cover this one!).
+1. Generate the build files via CMake.
+2. Configure the options (when available), also using CMake.
+3. Open the Solution (Visual Studio) or the shell with current working directory where the Makefiles are.
+4. Compile the solution (either clicking a button on Visual Studio or calling make in the shell).
+5. Install the generated project (We will not really cover this one!).
 
 Or, just click the build button (or calling the build command) in one of the mentioned editors (VSCode, Atom, VIm, EMacs)
 
