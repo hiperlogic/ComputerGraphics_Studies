@@ -1,69 +1,95 @@
 # ComputerGraphics_Studies
 
-Repository to gather code related to OpenGL and Vulkan Studies and Explorations
 
-The process will be constructed considering extending the previous tutorial within a new branch. So, the master branch contains all the tutorial folders empty.
+## [Initial Setup](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/master/README.md)
 
-Each branch will be named considering the number of the tutorial and the technology used. All the folders with number greater than the indicated in the branch will contain the same code as in the branch. All the folders with number lesser than the indicated in the branch will contain its own code.
-The branches have a conceptual hierarchy. This means that branch number XX may have _chapters_, which will be indicated as _YY.
-Thus, the branch structure, for clarification, is XX_[YY_]Branch_Name. Where XX, YY and Branch_Name stands for:
 
-XX is the branch order.
-YY is the order of that branch improvement and can be ommitted.
-Branch_Name is self-explanatory.
+## Initial Configuration: Application Framework and CMake Project Configuration
+- Systems Covered (So Far): OpenGL, ~~OpenGL-ES~~, ~~Vulkan~~
 
-With this process it is possible for the student to use the diff tool to easily identify what was added or removed.
 
-This, so far, is not created with intention to educate other than maintain the author current knowledge (and improve it). It can, however, become an educational tool. If you have suggestions about how better to educate others, please inform the author and your suggestion will be taken into account and mentioned in future endeavors.
+Once all the tools are installed, create or open the folder to store the files for the processes. Use it in Visual Studio, preferably set is as your workspace.
+From this point it is considered that you have installed the extension C/C++ for VSCode, CMake and CMake Tools, if you still haven't, go on and install them. I can wait, after all, from this point on, I'm just text!
 
-## Configuring The environment to work with [CMAKE](https://cmake.org/)
 
-I really needed to recall the multiplatform programming style with C/C++, since it has been quite a while from the last time I coded things to be easily compiled in Linux and Windows (and C/C++, with Python it is a piece of cake! But Python lacks some useful things to work with OpenGL, like GLEW). And it was done with [CMake](https://cmake.org/), in a time when CMake for Windows was barelly functional (`I'm talking about finding tools, including headers and libraries to be linked... toolchaining was another serious issue that I preferred working with branch commands and imperative algorithmic logic`). By “a while” I really mean about *7 years*!
+### The CMake structure creation
 
-So, CMake was the first choice to use, since it can generate builds for Windows, Linux, MacOS (and pretty much anything else commercially available).
 
-### A little about CMake
+There are several ways to configure a CMake project, but in this process we will configure as needed, so open the command palette and type in `cmake quickstart`, select the only option that should appear and you will have your first set up.
 
-  CMake is not a compiler, it does not generate a software. What it does is prepare all your code, along with the dependencies needed by the source files, to be compiled for the target system.
-  The target system is the system you run the CMake to generate the *make* files, unless you specify a toolchain so it generates the *make* files for another system. (The cross compiling/toolchain creation subject won't be addressed in this project, since the codes developed here are pretty much straightforward to be compiled in Linux, Windows or Mac).
-  So, if you are in Windows and have Visual Studio installed, CMake generates the `Visual Studio Solution` and `Project(s)` files. In Linux, it generates the files `configure` and `Makefile`, it is no wonder if on Mac it would generate `XCode files` that resemble the `Visual Studio Solution and Project(s)` files.
 
-So, the issue was: How is CMake handling with Windows? (Because within *nix systems it is great!)
-Luckily (and with some years in delay... at least 7) Microsoft finally is providing a good tool support for developers (that endeavor into other systems!). I'm talking about [`vcpack`](https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019). A package manager for Windows... yes, a package manager for windows, but it deals only with development libraries and... integrate seamlessly with CMake. If you haven't installed yet, go on and do it! It will save you some time (after you struggle to make things work well! But that's why I'm writing this... so... keep on, I'll tell you how to do it soon!)
+If the CMake environment within Visual Studio is configured, you will be asked to select a Kit for compiling.
+If you are in windows, a Visual Studio (Community) installation is needed, unless you are using WSI (Windows 10) and it will ask you if you allow VSCode to use Intellisense for code completion, I would allow it, it is a great tool.
 
-The actions you need to do for this to work is:
 
-* Install [CMake](https://cmake.org/)
-* Install [vcpack](https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019) if you are in Windows System.
+Now enter the name of the project and once this is done, the configuration is ready and you will have some new files and folders in your structure as displayed in the following image:
 
-## The Editor
+<img src="images/CMakeQuickstartResult.png">
 
-Code is text, so any text editor would work to get the job done, but we, developers, are lazy. We do not want to switch the application to the command line just to compile the code and get frustrated with the warnings and errors. We want the warnings and errors easily to get!... (maybe we are not lazy at all... just psychologically disturbed... like everyone else!).
-IDEs like Visual Studio, XCode, Netbeans, Eclipse or QtDevelop (are there others?) are heavy, they are somewhat sluggish, sometimes take forever for us to start typing!... I want to produce warnings and errors and feel the thrill to get frustrated as soon as I click the editor! (Maybe I should have been a writer!). Also, choosing an IDE would force my lazyness to switch from CMake to the IDE self building structure and this could kill my original intention of writing code as multiplatform as possible.
-That's why the choice was [Visual Studio Code](https://code.visualstudio.com/). Aside it being the editor I use professionally, it is fast, it has several features provided by extensions and seamless Git integration, a good fit to use in this project.
-The tools and languages features are available via extensions. If you are trully following this project, using it for learning, updating, remembering or just to see how others do Computer Graphics with OpenGL (and Vulkan), these are the extensions you must have:
 
-* C/C++ (By Microsoft) to integrate with Microsoft C/C++ compiler. You should need Visual Studio, at least community edition. On linux systems this will be updated in the future.
-* CMake (By twxs) Core features for CMake manipulation in VSCode
-* CMake Tools (by vector-of-bool) Extra tools for CMake manipulation in VSCode
+The folder “`.vscode`” is mandatory and relates to your project only. It is advisable to add it to the file “`.gitignore`”.
 
-## Configuring Visual Studio Code to Compile C/C++ code
+The folder “`build`” can also be added to “`.gitignore`”, since it contains a set of files generated by makefile to effectively build your project. 
+The quickstart creates a basic `main.cpp` file and executes to create all these structures. 
+This process is done to check for errors in the configuration, like a wrong kit selected, or errors in the compiler. All these can be ignored or deleted, but I advise to let them there.
 
-This is the main action if you want to use VSCode to write C/C++ coded software. And the VSCode team couldn't be more helpful in providing their documentation about how to do it. Seriously, it is simple, it works and all you need to do is follo the instructions at [VSCode configuration for C/C++ Languages](https://code.visualstudio.com/docs/languages/cpp).
-Follow there, test compiling the program and then you ar already set for the very first project in branch 00.
+The `CMakeLists.txt` is the file we are interested in this moment. Its main content should be something like:
 
-## Other Editors
 
-Although this project is aimed to use Visual Studio Code, you can use other editors, or even IDEs, if you are more prone to or more experienced with them.
-Atom works somewhat like Visual Studio Code, VIm and EMacs have extensions as well. The main issue in using CMake is to let the process as system independent as possible. So, basically, within each project conclusion all you need to do is:
+```
+cmake_minimum_required(VERSION 3.0.0)
+project(CG_Studies VERSION 0.1.0)
 
-1. Generate the build files via CMake.
-2. Configure the options (when available), also using CMake.
-3. Open the Solution (Visual Studio) or the shell with current working directory where the Makefiles are.
-4. Compile the solution (either clicking a button on Visual Studio or calling make in the shell).
-5. Install the generated project (We will not really cover this one!).
 
-Or, just click the build button (or calling the build command) in one of the mentioned editors (VSCode, Atom, VIm, EMacs)
+include(CTest)
+enable_testing()
 
-Next Branch 00: The initial application framework: Configuring and instancing a Window
+
+add_executable(CG_Studies main.cpp)
+
+
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+include(CPack)
+```
+
+
+The first line demands that the CMake used to generate the build files is equal to or greater than version 3.0.0, while the second line states the version of this project.
+
+
+Then there are the two lines that set the testing tools for the project, this won't be covered.
+
+
+The command add_executable contains the name of the project you provided and the `main.cpp` file created by the quickstart command.
+
+
+The project name will be the name of the executable and the files listed in sequence are the ones used in creating the executable.
+
+
+Finally, the last lines specify the instructions to generate a package with the result.
+
+
+With this structure you can hit build and check the results. If your configuration was done properly, the executable should be placed in the `build` folder with the name as specified in the `add_executable` instruction and can be called via shell or command line.
+
+
+But, this project intends to present Computer Graphics processes, the individual capabilities, features or functionalities provided by OpenGL and Vulkan that, when composed, produces those marvelous results we can watch.
+
+
+So, the initial step is how to create a window to display what we want... and then process to displaying what we want, individually, each in one different executable.
+
+
+For this the projects will use the following development and runtime libraries:
+
+
+- GLEW (libglew): The OpenGL Extension Wrangler library.
+- GLM (libglm): A Mathematical set of instructiosn to be used in the application.
+- GLFW (libglfw3): A simple framework to help the creation of multiplatform visual applications with easy configurations for OpenGL and Vulkan.
+- [STB](https://github.com/nothings/stb): In fact, stb_image.h, instructions to load images.
+- Vulkan(https://vulkan.lunarg.com/sdk/home): The Vulkan development library (drivers are necessary).
+
+
+If you are on linux (ubuntu), all, maybe except `STB`, are available via the distribution package manager. On windows all are available within `vcpack`.
+
+
+Next steps: Create the folder for the first project, set up the build instructions and code the source.
 
