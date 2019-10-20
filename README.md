@@ -4,7 +4,7 @@
 ## [Initial Setup](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/master/README.md)
 
 
-## [Initial Configuration: Application Framework and CMake Project Configuration](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/00_app_framework/README.md)
+## [Initial Configuration: Application Framework and CMake Project Configuration](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/00_CMake_Project_Create/README.md)
 
 
 ## CMake Specific Configuration, Project Folder Structure and Code
