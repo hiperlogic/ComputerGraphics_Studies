@@ -1,14 +1,15 @@
 # ComputerGraphics_Studies
 
-
+_________________________________________________________________________________________________
 ## [Initial Setup](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/master/README.md)
 
-
+_________________________________________________________________________________________________
 ## [Initial Configuration: Application Framework and CMake Project Configuration](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/00_CMake_Project_Create/README.md)
 
-
+_________________________________________________________________________________________________
 ## [CMake Specific Configuration, Project Folder Structure and Code](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/00_a_Project_Structure_And_Setup/README.md)
 
+_________________________________________________________________________________________________
 ## Finishing the Project Configuration
 - Systems Covered (So Far): OpenGL, ~~Vulkan~~
 
@@ -19,10 +20,15 @@ Since the project uses external libraries, such as glew, glm and glfw, it is imp
 Assuming the resources are already installed in the system, the `CMakeLists.txt` need to be updated by including the following instructions at the end of the file:
 
 ```
+find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm REQUIRED)
 
+# Linux systems demands the explicit inclusion of libGL.
+if(UNIX)
+  target_link_libraries(00_OpenGL_app_framework PRIVATE GL)
+endif(UNIX)
 target_link_libraries(00_OpenGL_app_framework PRIVATE GLEW::GLEW)
 target_link_libraries(00_OpenGL_app_framework PRIVATE glfw)
 target_link_libraries(00_OpenGL_app_framework PRIVATE glm)
@@ -40,6 +46,7 @@ If you groked everything mentioned about CMake and how its configuration is used
 
 Now, to the specifics, the application.
 
+_________________________________________________________________________________________________
 ## Coding the Application Framework
 
 In order to simplify the process of creating the windows, considering the purpose of the code compiling and running in Windows and Linux systems without (too many) tweaks, the framework GLFW will be used.
@@ -51,29 +58,36 @@ The first application will put the app window framework class and the main instr
 
 All code will be generated with an attempt to follow (or pursue) the best principles of software design patterns, even when things seem messy, they will be improved to fit into any good cathegory, so we can recapture all those lessos taught in software engineering.
 
+_________________________________________________________________________________________________
 ### Principal Class
 The following image presents the idea of the first class to be coded, and the main one in the projects:
 
 <img src="images/WindowAppWrapperFirstDraft.png">
 
+_________________________________________________________________________________________________
 ### WindowAppWrapper Class
 
 Considering the class representation, WindowAppWrapper will be the name of the class to be created in the application.
 Applications can have multiple windows, so, in the name of experimentation, this class will not be a `singleton`.
 
+_________________________________________________________________________________________________
 #### Private Attributes
-It has four private attributes:
+It has five private attributes:
 * win_width: specifies the width of the window to be created;
 * win_height: specifies the height of the window to be created;
-* win_title: is the title to appear on top of the window;
-* is_running: indicates if the system is running.
+* win_title: is the title `string` to appear on top of the window;
+* is_running: indicates if the system is running;
+* *window: The pointer to the graphical window.
 
+_________________________________________________________________________________________________
 #### Private Methods
-Along with that, three private methods:
+Along with that, four private methods:
 * initSystem: returns false if the system failed to initialize;
 * mainLoop: will run until the window is closed, a key to close is pressed or the process is killed;
 * cleanup: perform the resources cleanup upon closing the application.
+* error_callback: a static method to provide GLFW error information.
 
+_________________________________________________________________________________________________
 #### Public Methods
 There are no public attributes, but there are four public methods:
 * WindowAppWrapper: is the constructor. There are no parameters to be passed in this moment (this will be improved in the future);
@@ -81,15 +95,19 @@ There are no public attributes, but there are four public methods:
 * set_width: adjusts the width of the window to be created. If the window has been created, this method does nothing;
 * set_height: asjusts the height of the window to be created. If the window has been created, this method does nogthing.
 
+==================================================================================================
 ### Implementations
 Let's look at the methods to be implemented. Let's look at them in their order of execution.
 
+_________________________________________________________________________________________________
 #### The Public Methods
 
+_________________________________________________________________________________________________
 ##### The Constructor
-The constructor only initiates the attribute `is_running` with false. So, `this->is_running;` is the only instruction found in it.
+A special method within Object Oriented programming, the constructor only initiates the attribute `is_running` with false. So, `this->is_running;` is the only instruction found in it so far.
 
-##### set_height and set_width
+_________________________________________________________________________________________________
+##### Dimension methods: set_height and set_width
 Once the object is instantiated, the coder can call set_width or set_height to adjust the desired window dimensions.
 Those methods only set the object respective attributes if the `is_running` attribute is `false`, so both codes are somewhat the same:
 ```
@@ -104,7 +122,8 @@ void set_height(int new_height){
 }
 ```
 
-##### run
+_________________________________________________________________________________________________
+##### The run method
 Finally, the only method the code can call: `run`.
 `Run` performs basically three things: Initializes the system, calls the main loop and then call the cleanup to finish the application.
 But since the system initialization can fail, returnin a false value, we can use this information to control if the main loop will be effectively called, rendering our code as: 
@@ -120,25 +139,71 @@ void run(){
 ``` 
 Observe that the very first instruction in the run method it indicates that the system is running, reseting it in the last instruction.
 
+================================================================================================
 #### The Private Methods
-Now, for our three remaining private methods, in the respective order: system initialization, main loop and cleanup.
-
+Now, for our three remaining private methods, in the respective order: error_callback, system initialization, main loop and cleanup.
+_________________________________________________________________________________________________
+##### error_callback
+Sometimes errors occur and the code logic have nothing to do with it. Sometimes it is due to hardware failure or resources constraints. When this happens, the system crashes and if nothing is presented, we are left wondering: What happened? What did I do wrong? Was it I?
+There may be several places where things can go wrong, mainly with a complex system as the graphical management system, as Windows or X, and try to put error verification in every possible place is a huge task. That's why GLFW implemented a method to capture errors related to its instructions (the Window Graphical System) and provide information as it happens, with just a few lines of code.
+First we need to write the instruction to return the error. Since this is a common instruction, not related to an object, but to a class, this will be a static method.
+It returns no data, the error already occurred. It just prints what happened, but it needs two information: an integer representing the error code and a string, containing the error message, as depicted below:
+```
+static void error_callback(int error, const char* description){
+    fprintf(stderr, "Error: %s\n", description);
+}
+```
+_________________________________________________________________________________________________
 ##### initSystem
 Graphics application deals with some resources that determine how they will be displayed, where they will be displayed, what resources do they use, what is the data format stored (or to store) in the computer memory, or in the GPU memory, how to use the GPU (I'm talking about you Vulkan!). All of these needs to be configured so the operating system can allocate the resources, inform where they are and how to use them and properly display the windows.
 In this section we are dealing only with OpenGL, so let's stick to that and improve later to a more generic solution.
 And let's use the GLFW framework to make this kind of configuration easier, and able to execute in several platforms without much trouble.
 The main steps taken in the initialization system are:
-1. Initialize the framework;
-2. Configure the window and the canvas attributes
-3. Create the Window
-4. Assign the window to the graphics processing making it the current context
-5. Initializes GLEW
+1. (*) Initialize the framework;
+2. (*) Configure the window and the canvas attributes
+3. (*) Create the Window with: ```this->window = glfwCreateWindow(this->win_width, this->win_height, this->win_title.c_str(), NULL, NULL);```
+4. Assign the window to the graphics processing making it the current context with ```glfwMakeContextCurrent(this->window);```
+5. (*) Initializes GLEW
 
 There are three main points of validation in this process.
-If the framework fails to initialize (1.), then there are nothing to be done, something is terribly wrong, check the error messages and seek or ask for solutions. But if happens, the initialization must return an EXIT_FAILURE value.
-In the window creation (3.), if the value returned is NULL, the creation failed. When there are no windows to display the results, the system is useless, so, it must return an EXIT_FAILURE.
-GLEW is the tool to set available the OpenGL extensions, much of which are used nowadays.
-If it fails to initialize (5.), much of the code will fail, so the system must return an EXIT_FAILURE.
+* If the framework fails to initialize (1.), then there are nothing to be done, something is terribly wrong, check the error messages and seek or ask for solutions. But if happens, the initialization must return an EXIT_FAILURE value.
+
+In order to verify the error, we need to setup the callback routine to be called when an error occurs. The routine was already presented, remaining only its configuration:
+
+```
+glfwSetErrorCallback( WindowAppWrapper::error_callback );
+```
+
+And the glfw initialization:
+
+```
+if(!glfwInit()){
+    std::cerr << "GLFW Failed to initialize" <<std::endl;
+    return EXIT_FAILURE;
+}
+```
+
+* In the window creation (3.), if the value returned is NULL, the creation failed. When there are no windows to display the results, the system is useless, so, it must return an EXIT_FAILURE.
+
+```
+if( this->window == NULL ){
+    std::cerr << "GLFW Failed to initialize" << std::endl;
+    glfwTerminate();
+    return EXIT_FAILURE;
+}
+```
+
+* GLEW is the tool to set available the OpenGL extensions, much of which are used nowadays. If it fails to initialize (5.), much of the code will fail, so the system must return an EXIT_FAILURE.
+
+```
+glewExperimental = true;
+
+if (glewInit() != GLEW_OK) {
+    std::cerr << "GLEW Failed to initialize" <<std::endl;
+    glfwTerminate();
+    return EXIT_FAILURE;
+}
+```
 
 All of these are easily read from the code, the only one that demands more details is the configuration of the windows and canvas attributes. Let's look at them:
 
@@ -161,6 +226,7 @@ For more information on these hits, consult the [GLFW Window Guide](https://www.
 If all 5 steps went well, then there is the sixth step:
 6. return EXIT_SUCCESS;
 
+_________________________________________________________________________________________________
 ##### mainLoop
 In graphical applications the main loop is basically an endless loop that is broken via command.
 So, there is need to configure the system to identify where those commands come and which commands are responsible to break the endless loop. This is the main issue in this process.
@@ -204,6 +270,7 @@ glfwPollEvents();
 
 All we need to do is a
 
+_________________________________________________________________________________________________
 ##### cleanup
 When the application closes, the resources it uses must be freed. The frameworks used need to be told to clean up their mess and let room for other applications to come.
 Gladly GLFW does that quite easily, two lines of code and you are done!
@@ -216,6 +283,7 @@ There, done, our class is ready and can be used...
 Hope you've followed the instructions to guide you and coded yourself instead of proceeding to the practice of CTRL+C-CRTL+V, or worse, copied the whole main code!... At least read it and try to understand... it will be good for you in the future!
 But you've reached here, so... Kudos! You can write your
 
+==================================================================================================
 #### Main Application
 
 Without further ado:
