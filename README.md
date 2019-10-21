@@ -2,19 +2,19 @@
 
 Repository to gather code related to OpenGL and Vulkan Studies and Explorations
 
-The process will be constructed considering extending the previous tutorial within a new branch. So, the master branch contains all the tutorial folders empty.
-
 Each branch will be named considering the number of the tutorial and the technology used. All the folders with number greater than the indicated in the branch will contain the same code as in the branch. All the folders with number lesser than the indicated in the branch will contain its own code.
 The branches have a conceptual hierarchy. This means that branch number XX may have _chapters_, which will be indicated as _YY.
 Thus, the branch structure, for clarification, is XX_[YY_]Branch_Name. Where XX, YY and Branch_Name stands for:
 
 XX is the branch order.
-YY is the order of that branch improvement and can be ommitted.
+YY is the alphabetical order of that branch improvement and can be ommitted.
 Branch_Name is self-explanatory.
 
 With this process it is possible for the student to use the diff tool to easily identify what was added or removed.
 
-This, so far, is not created with intention to educate other than maintain the author current knowledge (and improve it). It can, however, become an educational tool. If you have suggestions about how better to educate others, please inform the author and your suggestion will be taken into account and mentioned in future endeavors.
+This, so far, is created with no intention to educate but to maintain the author current knowledge (and improve it). It can, however, become an educational tool. If you have suggestions about how better to educate others, please inform the author and your suggestion will be taken into account and mentioned in future endeavors.
+
+*Disclosure* This text is being written as is and with no proofreading or revision. Grammatical or orthographical errors are expected.
 
 ## Configuring The environment to work with [CMAKE](https://cmake.org/)
 
