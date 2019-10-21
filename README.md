@@ -1,17 +1,16 @@
 # ComputerGraphics_Studies
-
-_________________________________________________________________________________________________
+- Systems Covered (So Far): OpenGL, ~~Vulkan~~
+________________________________________________________________________________
 ## [Initial Setup](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/master/README.md)
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ## [Initial Configuration: Application Framework and CMake Project Configuration](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/00_CMake_Project_Create/README.md)
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ## [CMake Specific Configuration, Project Folder Structure and Code](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/00_a_Project_Structure_And_Setup/README.md)
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ## Finishing the Project Configuration
-- Systems Covered (So Far): OpenGL, ~~Vulkan~~
 
 Cmake and VSCode now are set up and compiling the source within the specific folder for the project, we are ready to end up the first set of code and move on to the next ones.
 
@@ -46,7 +45,7 @@ If you groked everything mentioned about CMake and how its configuration is used
 
 Now, to the specifics, the application.
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ## Coding the Application Framework
 
 In order to simplify the process of creating the windows, considering the purpose of the code compiling and running in Windows and Linux systems without (too many) tweaks, the framework GLFW will be used.
@@ -58,19 +57,19 @@ The first application will put the app window framework class and the main instr
 
 All code will be generated with an attempt to follow (or pursue) the best principles of software design patterns, even when things seem messy, they will be improved to fit into any good cathegory, so we can recapture all those lessos taught in software engineering.
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ### Principal Class
 The following image presents the idea of the first class to be coded, and the main one in the projects:
 
 <img src="images/WindowAppWrapperFirstDraft.png">
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ### WindowAppWrapper Class
 
 Considering the class representation, WindowAppWrapper will be the name of the class to be created in the application.
 Applications can have multiple windows, so, in the name of experimentation, this class will not be a `singleton`.
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 #### Private Attributes
 It has five private attributes:
 * win_width: specifies the width of the window to be created;
@@ -79,7 +78,7 @@ It has five private attributes:
 * is_running: indicates if the system is running;
 * *window: The pointer to the graphical window.
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 #### Private Methods
 Along with that, four private methods:
 * initSystem: returns false if the system failed to initialize;
@@ -87,7 +86,7 @@ Along with that, four private methods:
 * cleanup: perform the resources cleanup upon closing the application.
 * error_callback: a static method to provide GLFW error information.
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 #### Public Methods
 There are no public attributes, but there are four public methods:
 * WindowAppWrapper: is the constructor. There are no parameters to be passed in this moment (this will be improved in the future);
@@ -95,18 +94,18 @@ There are no public attributes, but there are four public methods:
 * set_width: adjusts the width of the window to be created. If the window has been created, this method does nothing;
 * set_height: asjusts the height of the window to be created. If the window has been created, this method does nogthing.
 
-==================================================================================================
+================================================================================
 ### Implementations
 Let's look at the methods to be implemented. Let's look at them in their order of execution.
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 #### The Public Methods
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ##### The Constructor
 A special method within Object Oriented programming, the constructor only initiates the attribute `is_running` with false. So, `this->is_running;` is the only instruction found in it so far.
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ##### Dimension methods: set_height and set_width
 Once the object is instantiated, the coder can call set_width or set_height to adjust the desired window dimensions.
 Those methods only set the object respective attributes if the `is_running` attribute is `false`, so both codes are somewhat the same:
@@ -122,7 +121,7 @@ void set_height(int new_height){
 }
 ```
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ##### The run method
 Finally, the only method the code can call: `run`.
 `Run` performs basically three things: Initializes the system, calls the main loop and then call the cleanup to finish the application.
@@ -139,10 +138,10 @@ void run(){
 ``` 
 Observe that the very first instruction in the run method it indicates that the system is running, reseting it in the last instruction.
 
-================================================================================================
+================================================================================
 #### The Private Methods
 Now, for our three remaining private methods, in the respective order: error_callback, system initialization, main loop and cleanup.
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ##### error_callback
 Sometimes errors occur and the code logic have nothing to do with it. Sometimes it is due to hardware failure or resources constraints. When this happens, the system crashes and if nothing is presented, we are left wondering: What happened? What did I do wrong? Was it I?
 There may be several places where things can go wrong, mainly with a complex system as the graphical management system, as Windows or X, and try to put error verification in every possible place is a huge task. That's why GLFW implemented a method to capture errors related to its instructions (the Window Graphical System) and provide information as it happens, with just a few lines of code.
@@ -153,7 +152,7 @@ static void error_callback(int error, const char* description){
     fprintf(stderr, "Error: %s\n", description);
 }
 ```
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ##### initSystem
 Graphics application deals with some resources that determine how they will be displayed, where they will be displayed, what resources do they use, what is the data format stored (or to store) in the computer memory, or in the GPU memory, how to use the GPU (I'm talking about you Vulkan!). All of these needs to be configured so the operating system can allocate the resources, inform where they are and how to use them and properly display the windows.
 In this section we are dealing only with OpenGL, so let's stick to that and improve later to a more generic solution.
@@ -226,7 +225,7 @@ For more information on these hits, consult the [GLFW Window Guide](https://www.
 If all 5 steps went well, then there is the sixth step:
 6. return EXIT_SUCCESS;
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ##### mainLoop
 In graphical applications the main loop is basically an endless loop that is broken via command.
 So, there is need to configure the system to identify where those commands come and which commands are responsible to break the endless loop. This is the main issue in this process.
@@ -270,7 +269,7 @@ glfwPollEvents();
 
 All we need to do is a
 
-_________________________________________________________________________________________________
+________________________________________________________________________________
 ##### cleanup
 When the application closes, the resources it uses must be freed. The frameworks used need to be told to clean up their mess and let room for other applications to come.
 Gladly GLFW does that quite easily, two lines of code and you are done!
@@ -283,7 +282,7 @@ There, done, our class is ready and can be used...
 Hope you've followed the instructions to guide you and coded yourself instead of proceeding to the practice of CTRL+C-CRTL+V, or worse, copied the whole main code!... At least read it and try to understand... it will be good for you in the future!
 But you've reached here, so... Kudos! You can write your
 
-==================================================================================================
+================================================================================
 #### Main Application
 
 Without further ado:
