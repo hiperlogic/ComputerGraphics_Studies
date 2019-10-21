@@ -15,7 +15,11 @@ find_package(GLEW REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm REQUIRED)
 
-target_link_libraries(00_OpenGL_app_framework PRIVATE GL)
+# Linux and Unix systems demands the explicit linking of OpenGL
+if(UNIX)
+    target_link_libraries(00_OpenGL_app_framework PRIVATE GL)
+endif(UNIX)
+
 target_link_libraries(00_OpenGL_app_framework PRIVATE GLEW::GLEW)
 target_link_libraries(00_OpenGL_app_framework PRIVATE glfw)
 target_link_libraries(00_OpenGL_app_framework PRIVATE glm)
