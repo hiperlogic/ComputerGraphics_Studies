@@ -2,7 +2,8 @@
 #include <stdexcept>
 #include <functional>
 #include <cstdlib>
-
+#include <string>
+using namespace std;
 /*
     Includes the Glew (OpenGL Extension Wrangler) in order to verify and use the most recent OpenGL
     implementations. This must be included prior to any library that uses OpenGL.
@@ -63,12 +64,13 @@ class WindowAppWrapper {
         GLFWwindow* window;
         int win_width = 1024;
         int win_height = 768;
-        char* win_title = "First OpenGL Window\n";
+        string win_title = "First OpenGL Window\n";
         bool is_running;
 
         int initSystem(){
             if(!glfwInit()){
-                std::cerr << "GLFW Failed to initialize" <<std::endl;
+                int code = glfwGetError(NULL);
+                std::cerr << "GLFW Failed to initialize"<<std::endl;
                 return EXIT_FAILURE;
             }
 
@@ -78,7 +80,7 @@ class WindowAppWrapper {
             glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-            this->window = glfwCreateWindow(this->win_width, this->win_height, this->win_title, NULL, NULL);
+            this->window = glfwCreateWindow(this->win_width, this->win_height, this->win_title.c_str(), NULL, NULL);
             if( this->window == NULL ){
                 std::cerr << "GLFW Failed to initialize" <<std::endl;
                 glfwTerminate();
