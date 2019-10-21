@@ -9,3 +9,11 @@ add_executable(00_OpenGL_app_framework OpengL/00_app_framework/main.cpp)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+find_package(GLEW REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glm REQUIRED)
+
+target_link_libraries(00_OpenGL_app_framework PRIVATE GLEW::GLEW)
+target_link_libraries(00_OpenGL_app_framework PRIVATE glfw)
+target_link_libraries(00_OpenGL_app_framework PRIVATE glm)
