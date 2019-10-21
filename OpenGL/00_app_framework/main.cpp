@@ -67,10 +67,14 @@ class WindowAppWrapper {
         string win_title = "First OpenGL Window\n";
         bool is_running;
 
+        static void error_callback(int error, const char* description){
+            fprintf(stderr, "Error: %s\n", description);
+        }
+
         int initSystem(){
+            glfwSetErrorCallback( WindowAppWrapper::error_callback );
             if(!glfwInit()){
-                int code = glfwGetError(NULL);
-                std::cerr << "GLFW Failed to initialize" << code <<std::endl;
+                std::cerr << "GLFW Failed to initialize" <<std::endl;
                 return EXIT_FAILURE;
             }
 
@@ -82,8 +86,7 @@ class WindowAppWrapper {
 
             this->window = glfwCreateWindow(this->win_width, this->win_height, this->win_title.c_str(), NULL, NULL);
             if( this->window == NULL ){
-                int code = glfwGetError(NULL);
-                std::cerr << "GLFW Failed to initialize" << code <<std::endl;
+                std::cerr << "GLFW Failed to initialize" << std::endl;
                 glfwTerminate();
                 return EXIT_FAILURE;
             }
