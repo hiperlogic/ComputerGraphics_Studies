@@ -70,7 +70,7 @@ class WindowAppWrapper {
         int initSystem(){
             if(!glfwInit()){
                 int code = glfwGetError(NULL);
-                std::cerr << "GLFW Failed to initialize"<<std::endl;
+                std::cerr << "GLFW Failed to initialize" << code <<std::endl;
                 return EXIT_FAILURE;
             }
 
