@@ -106,6 +106,8 @@ class WindowAppWrapper {
         void mainLoop(){
             glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);   
 
+            glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
+
             do{
                 // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
                 glClear( GL_COLOR_BUFFER_BIT );
