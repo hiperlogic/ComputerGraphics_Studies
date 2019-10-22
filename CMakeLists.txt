@@ -20,6 +20,5 @@ if(UNIX)
     target_link_libraries(00_OpenGL_app_framework PRIVATE GL)
 endif(UNIX)
 
-target_link_libraries(00_OpenGL_app_framework PRIVATE GLEW::GLEW)
-target_link_libraries(00_OpenGL_app_framework PRIVATE glfw)
-target_link_libraries(00_OpenGL_app_framework PRIVATE glm)
+target_link_libraries(00_OpenGL_app_framework PRIVATE GLEW::GLEW glfw glm)
+
