@@ -83,25 +83,44 @@ Think of this pair as the identifier that indicates the begining of a block of c
 The instruction `glBegin` not only initiates the OpenGL state machine to receive data (the queue), it also specifies how the vertices are to be processed to generate the graphics. The parameter informed in its arguments, that `value` mentioned the third paragraph of this section, are one of the following: GL_POINTS, GL_LINES, GL_LINE_STRIP, GL_LINE_LOOP, GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN, GL_QUADS, GL_QUAD_STRIP and GL_POLYGON. They set the OpenGL state machine to work the following way:
 
 * GL_POINTS: Each vertex passed is processed and a point is generated and the vertex is removed from the queue 
+
 <img src="images/GL_POINTS.png">;
+
 * GL_LINES: On each second vertex a line is generated (rendered), both are removed from the queue 
+
 <img src="images/GL_LINES.png">;
+
 * GL_LINE_STRIP: On the second vertex a line is generated (rendered), the first vertex is removed from the queue, the second remains to be used as the first vertex for the next operation, if any 
+
 <img src="images/GL_LINE_STRIP.png">;
+
 * GL_LINE_LOOP: On the second vertex a line is rendered, the first vertex is removed from the queue, the second remains to be used as the first vertex for the next operation. The very first vertex is stored, when no more vertices remain, the last vertex informed is used as the first vertex and the stored vertex is used as the second, closing a loop 
+
 <img src="images/GL_LINE_LOOP.png">;
+
 * GL_TRIANGLES: On the third vertex a triangle is rendered and all vertices are removed from the queue 
 <img src="images/GL_TRIANGLES.png">;
+
 * GL_TRIANGLE_STRIP: On the third vertex a triangle is rendered, the first vertex informed is removed from the queue, the two remaining are used in the next operation, if any 
+
 <img src="images/GL_TRIANGLE_STRIP.png">;
+
 * GL_TRIANGLE_FAN: On the third vertex a triangle is rendered. The first and third vertices remain in the queue, the second is removed from the queue. The third assumes the position of the second for the next operation, if any 
+
 <img src="images/GL_TRIANGLE_FAN.png">;
+
 * GL_QUADS: On the fourth vertex a quad is rendered. All four vertices are removed from the queue 
+
 <img src="images/GL_QUADS.png">;
+
 * GL_QUAD_STRIP: On the fourth vertex a quad is rendered, the first two vertices are removed from the queue and the remaining are shifted for the first and second position. This operation has its peculiarities due to this practice. Check out the image and try to figure out what it is 
+
 <img src="images/GL_QUAD_STRIP.png">;
+
 * GL_POLYGON: It is somewhat similar to GL_LINE_LOOP, but can be filled. However, it has a limitation that the polygon formed must not have concavity 
+
 <img src="images/GL_POLYGON.png">.
+
 
 > Tip: This will be really valid when discussing 3D graphics and data, but for sake of simplicity, let the vertices in triangles ordered counterclockwise. This is due to a concept of spatial orientation better known as "the right hand rule" for computer graphics. Go ahead and check it out if you wish, it will be slightly covered in the future. (Slightly because this whole document is to help me remind OpenGL and learn Vulkan, not Computer Graphics theory, which is math and I'm pretty much familiar!)
 
