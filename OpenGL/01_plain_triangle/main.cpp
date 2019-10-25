@@ -78,12 +78,13 @@ class WindowAppWrapper {
                 return EXIT_FAILURE;
             }
 
+/*             
             glfwWindowHint(GLFW_SAMPLES, 4);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
             glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
+ */
             this->window = glfwCreateWindow(this->win_width, this->win_height, this->win_title.c_str(), NULL, NULL);
             if( this->window == NULL ){
                 std::cerr << "GLFW Failed to initialize" << std::endl;
@@ -106,14 +107,34 @@ class WindowAppWrapper {
         void mainLoop(){
             glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);   
 
-            glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
+            // Tell OpenGL state machine which matrix we will configure
+            glMatrixMode(GL_PROJECTION);
+            // Set the matrix to the identity
+            glLoadIdentity();
+            // Configure the matrix acording to the orthographic view
+            // Homogeneous coordinates: Horizontal, Vertical and Depth (X,Y,Z) from -1.0 to 1.0
+            glOrtho(-1.0,1.0,-1.0,1.0,-1.0,1.0); 
+            // Tell OpenGL we are no longer modifying the projection matrix, but the modelview matrix.
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+            // Configure the clear color as we already have learned
+            glClearColor(0.0, 0.0, 0.0, 0.0);
+
+            glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 
             do{
                 // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
                 glClear( GL_COLOR_BUFFER_BIT );
 
-                // Draw nothing, see you in tutorial 2 !
+                // Draw a White (current color) triangle!
+                glBegin(GL_TRIANGLES);
+                    glVertex3f(-1.0,-1.0,0.0);
+                    glVertex3f(1.0,-1.0,0.0);
+                    float top[3] = {0.0,1.0,0.0};
+                    glVertex3fv(top);
+                glEnd();
 
+                glFlush();
                 // Swap buffers
                 glfwSwapBuffers(window);
                 glfwPollEvents();
