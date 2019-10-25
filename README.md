@@ -67,3 +67,12 @@ Or, just click the build button (or calling the build command) in one of the men
 
 Next Branch 00: The initial application framework: Configuring and instancing a Window
 
+## Learning with GIT
+
+This series is being developed considering the concept cumulative knowledge, whose can be obtained via comparison with previous branches, allowing a differential analysis that can better elucidate the (knowledge) evolution or construction process.
+The main editor used in this process is VSCode, which has an embedded GIT feature, alongside a tool called GITLens that provides valuable resources for the practice of differential analysis.
+Since each section is within a branch and the following branch is slightly different from the current, which, in turn, is slightly different from the previous, branch comparisons can be done using `GITLens Compare` tool. All you need to do is issue the command `compare` from the command palette or click on the GITLens icon on the panel and proceed to the compare section, clicking on the compare command and select the two branches to compare.
+For simplicity all main codes will be named `main` and source code files will be only added, never removed. Some codes will be moved from one source code to another and this will be mentioned in the proper readme section.
+There is no point in comparing README.md files, since in each branch they will be fully rewritten.
+Using these tools it is possible to compare the current branch to the next or the previous branch (if any), or to more than 1 branches ahead or behind, and learn what changed.
+However, the text will contain introspections, insights, informations and tips and reading it is not only encouradged, but fundamental.
