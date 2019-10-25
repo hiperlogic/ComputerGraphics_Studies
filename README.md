@@ -25,9 +25,9 @@ From OpenGL 2.0 onward a new pipeline was introduced, the `Programable Pipeline`
 
 So, we had the following in the fixed pipeline:
 
-> API->Primitive Processing->`Transform and Lighting`->Primitive Assembly->Rasterizes->`Texture Environment->Color Sum->Fog->Alpha Test`->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
+API->Primitive Processing->`Transform and Lighting`->Primitive Assembly->Rasterizes->`Texture Environment->Color Sum->Fog->Alpha Test`->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
 
 And got the following in the programmable pipeline:
 
-> API->Primitive Processing->`Vertex Shader`->Primitive Assembly->Rasterizes->`Fragment Shader`->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
+API->Primitive Processing->`Vertex Shader`->Primitive Assembly->Rasterizes->`Fragment Shader`->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
 
