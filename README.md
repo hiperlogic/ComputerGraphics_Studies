@@ -20,11 +20,26 @@ ________________________________________________________________________________
 ## 01 - A - Sending Data to OpenGL
 
 Back in the day when OpenGL major version was no bigger than 2, the technology provided a hardware architecture specification called `fixed pipeline` or `fixed function pipeline`, which set available two basic modes of drawing named `immediate` and `retained` mode.
+Since retained mode is the default in the programmable pipeline, only the immediate mode will be focused in this section.
 
 ### The Fixed Function Pipeline
 
 The fixed function pipeline was the main OpenGL pipeline process as designed when OpenGL was idealized, in a time where only the immediate mode was available and this was the first steps to learn OpenGL, so let's present it.
 In order to use the Fixed function pipeline two procedures must be taken, configure the matrices to process the vertices and configure the OpenGL state machine to receive the vertices. Those procedures are coded in the mainLoop routine, the configuration is coded prior to the loop, while the data delivery/retrieval is configured within the loop.
+It is called fixed function pipeline because once you set up the OpenGL state machine for projection, viewing (camera) and model (object setup in the scene), prior to sending the vertices to the primitive processing queue, there was no way of modifying the data sent.
+In immediate mode the vertices are sent directly, one by one via application loop, to the `Primitive Processing`. In retained mode, with the configured and stored vertex buffers via application, they are sent by request to the `Primitive Processing`. 
+Then those vertices were transformed by the matrices configured and if any lighting configured as well, their light attribute were computed. This is the `Transform and Lighting` stage.
+Once transformed and "lit" (in fact their "illumination" factor is set, this is used in the rendering process as parameter to compute actual pixels) the vertices are sent to the `Primitive Assembly`.
+It is on the `Primitive Assembly` that the vertices are enqueued and processed according to the geometrical configuration. This will be detailed ahead. 
+This ends the vertex stage for the fixed function pipeline.
+Then it go to the `Rasterizer` to decide which part of the screen (which pixel) will be lit and indicate which vertices influence that pixel.
+The result of the rasterizer and color (ilumination) data for the lit pixels goes through the next stage, to compute the actual value for the pixel.
+First of all, if there is a texture assigned to the pixel, uses the information for texture coordinate (this will be addressed in its own project) to retrieve from the `Texture Environment` and calculate the pixel color related to the texture and send it to the `Color Sum` process to compute the pixel color without the texture, that is, using only the attributes set via lighting parameters to compute the contribution and value of the untextured lit pixel and perform the composition operation of that color with the textured pixel color.
+There is the possibility for the user to configure `Fog` in the fixed function pipeline. This is usually done to mimicry the result of distance fading, so if configured, this is where the computations occurr, using the depth value of the fragment pixel to compute its new color.
+If an `Alpha Test` is configured, it is processed in the sequence, using the alpha value of the color to compose the new pixel color.
+From the `Texture Environment` until the `Alpha Test` process we have a simplistic equivalent of the `Fragment Shader`.
+The final stages of the fixed function pipeline is the `Depth and Stencil` processing, to decide if the pixel will go to the end result, the `Color Buffer Blend`, properly applying the results of the Alpha Test and the `Dither`, to produce an end result, in color, as close as possible to the computed, due to color belonging to an analog spectrum and the monitor belonging to a discreet spectrum.
+The final result is sent to the Frame Buffer to be shown in the screen once the buffers are swapped (considering the use of a double buffer).
 
 #### OpenGL Matrices Configuration
 
@@ -67,16 +82,16 @@ Think of this pair as the identifier that indicates the begining of a block of c
 
 The instruction `glBegin` not only initiates the OpenGL state machine to receive data (the queue), it also specifies how the vertices are to be processed to generate the graphics. The parameter informed in its arguments, that `value` mentioned the third paragraph of this section, are one of the following: GL_POINTS, GL_LINES, GL_LINE_STRIP, GL_LINE_LOOP, GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN, GL_QUADS, GL_QUAD_STRIP and GL_POLYGON. They set the OpenGL state machine to work the following way:
 
-* GL_POINTS: Each vertex passed is processed and a point is generated and the vertex is removed from the queue;
-* GL_LINES: On each second vertex a line is generated (rendered), both are removed from the queue;
-* GL_LINE_STRIP: On the second vertex a line is generated (rendered), the first vertex is removed from the queue, the second remains to be used as the first vertex for the next operation, if any;
-* GL_LINE_LOOP: On the second vertex a line is rendered, the first vertex is removed from the queue, the second remains to be used as the first vertex for the next operation. The very first vertex is stored, when no more vertices remain, the last vertex informed is used as the first vertex and the stored vertex is used as the second, closing a loop;
-* GL_TRIANGLES: On the third vertex a triangle is rendered and all vertices are removed from the queue;
-* GL_TRIANGLE_STRIP: On the third vertex a triangle is rendered, the first vertex informed is removed from the queue, the two remaining are used in the next operation, if any;
-* GL_TRIANGLE_FAN: On the third vertex a triangle is rendered. The first and third vertices remain in the queue, the second is removed from the queue. The third assumes the position of the second for the next operation, if any;
-* GL_QUADS: On the fourth vertex a quad is rendered. All four vertices are removed from the queue;
-* GL_QUAD_STRIP: On the fourth vertex a quad is rendered, the first two vertices are removed from the queue and the remaining are shifted for the first and second position. This operation has its peculiarities due to this practice. Check out the image and try to figure out what it is;
-* GL_POLYGON: It is somewhat similar to GL_LINE_LOOP, but can be filled. However, it has a limitation that the polygon formed must not have concavity.
+* GL_POINTS: Each vertex passed is processed and a point is generated and the vertex is removed from the queue <img src="images/GL_POINTS.png">;
+* GL_LINES: On each second vertex a line is generated (rendered), both are removed from the queue <img src="images/GL_LINES.png">;
+* GL_LINE_STRIP: On the second vertex a line is generated (rendered), the first vertex is removed from the queue, the second remains to be used as the first vertex for the next operation, if any <img src="images/GL_LINE_STRIP.png">;
+* GL_LINE_LOOP: On the second vertex a line is rendered, the first vertex is removed from the queue, the second remains to be used as the first vertex for the next operation. The very first vertex is stored, when no more vertices remain, the last vertex informed is used as the first vertex and the stored vertex is used as the second, closing a loop <img src="images/GL_LINE_LOOP.png">;
+* GL_TRIANGLES: On the third vertex a triangle is rendered and all vertices are removed from the queue <img src="images/GL_TRIANGLES.png">;
+* GL_TRIANGLE_STRIP: On the third vertex a triangle is rendered, the first vertex informed is removed from the queue, the two remaining are used in the next operation, if any <img src="images/GL_TRIANGLE_STRIP.png">;
+* GL_TRIANGLE_FAN: On the third vertex a triangle is rendered. The first and third vertices remain in the queue, the second is removed from the queue. The third assumes the position of the second for the next operation, if any <img src="images/GL_TRIANGLE_FAN.png">;
+* GL_QUADS: On the fourth vertex a quad is rendered. All four vertices are removed from the queue <img src="images/GL_QUADS.png">;
+* GL_QUAD_STRIP: On the fourth vertex a quad is rendered, the first two vertices are removed from the queue and the remaining are shifted for the first and second position. This operation has its peculiarities due to this practice. Check out the image and try to figure out what it is <img src="images/GL_QUAD_STRIP.png">;
+* GL_POLYGON: It is somewhat similar to GL_LINE_LOOP, but can be filled. However, it has a limitation that the polygon formed must not have concavity <img src="images/GL_POLYGON.png">.
 
 > Tip: This will be really valid when discussing 3D graphics and data, but for sake of simplicity, let the vertices in triangles ordered counterclockwise. This is due to a concept of spatial orientation better known as "the right hand rule" for computer graphics. Go ahead and check it out if you wish, it will be slightly covered in the future. (Slightly because this whole document is to help me remind OpenGL and learn Vulkan, not Computer Graphics theory, which is math and I'm pretty much familiar!)
 
