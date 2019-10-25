@@ -99,6 +99,7 @@ The instruction `glBegin` not only initiates the OpenGL state machine to receive
 <img src="images/GL_LINE_LOOP.png">;
 
 * GL_TRIANGLES: On the third vertex a triangle is rendered and all vertices are removed from the queue 
+
 <img src="images/GL_TRIANGLES.png">;
 
 * GL_TRIANGLE_STRIP: On the third vertex a triangle is rendered, the first vertex informed is removed from the queue, the two remaining are used in the next operation, if any 
