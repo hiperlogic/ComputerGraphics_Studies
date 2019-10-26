@@ -121,12 +121,17 @@ class WindowAppWrapper {
             glClearColor(0.0, 0.0, 0.0, 0.0);
 
             glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
-            glColor3f(1.0f,0.1f,0.8f);
+            float colors[] = {1.0f, 0.0f, 0.0f, 1.0f, 0.1f, 0.8f, 1.0f, 1.0f, 0.0f}; //Red, somewhat violet and yellow
+            int corrCol = 1; // The somewhat violet is the color of the previous code
+            glColor3f(colors[corrCol*3], colors[corrCol*3+1],colors[corrCol*3+2]);
 
             do{
                 // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
                 glClear( GL_COLOR_BUFFER_BIT );
                 // Draw a White (current color) triangle!
+
+                glColor3f(colors[corrCol*3], colors[corrCol*3+1],colors[corrCol*3+2]);
+
                 glBegin(GL_TRIANGLES);
                     glVertex3f(-1.0,-1.0,0.0);
                     glVertex3f(1.0,-1.0,0.0);
@@ -138,6 +143,10 @@ class WindowAppWrapper {
                 // Swap buffers
                 glfwSwapBuffers(window);
                 glfwPollEvents();
+
+                if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
+                    corrCol = (corrCol+1)%3;
+                }
 
             } // Check if the ESC key was pressed or the window was closed
             while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
