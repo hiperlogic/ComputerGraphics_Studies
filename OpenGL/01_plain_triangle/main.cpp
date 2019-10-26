@@ -136,15 +136,6 @@ class WindowAppWrapper {
             // The data is static (not streamed nor dynamic. It does not change) and to be drawn (not to be read or copy)
             cout<<"Size: "<<sizeof(triangle_buffer_data)<<"divided by floar: "<<sizeof(triangle_buffer_data)/sizeof(GLfloat);
             glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_buffer_data), triangle_buffer_data, GL_STATIC_DRAW);
-
-            // Configure the clear color as we already have learned
-            glClearColor(0.0, 0.0, 0.5, 0.0);
-
-            do{
-                // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
-                glClear( GL_COLOR_BUFFER_BIT );
-
-                // Draw a White (current color) triangle!
                 //Enable the vertex attribute array of index 0
                 glEnableVertexAttribArray(0);
                 // Bind the current buffer to the vertex buffer
@@ -158,22 +149,31 @@ class WindowAppWrapper {
                     0,           // Do not consider stride
                     (void*)0    // No offset to be used
                 );
+            // Configure the clear color as we already have learned
+            glClearColor(0.0, 0.0, 0.5, 0.0);
+
+            do{
+                // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
+                glClear( GL_COLOR_BUFFER_BIT );
+
+                // Draw a White (current color) triangle!
+
                 // Send the command to draw the data from the configured buffers
                 // Consider the triangle as the primitive to process
                 // Starts with the data at position 0
                 // Consider 3 data to use
                 glDrawArrays(GL_TRIANGLES, 0, 3);
 
-                // The OpenGL resource for the vertex attrib array with index 0 has already been processed
-                // It can be deactivated for future uses.
-                glDisableVertexAttribArray(0);
-                // Swap buffers
                 glfwSwapBuffers(window);
                 glfwPollEvents();
 
             } // Check if the ESC key was pressed or the window was closed
             while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
                 glfwWindowShouldClose(window) == 0 );
+                // The OpenGL resource for the vertex attrib array with index 0 has already been processed
+                // It can be deactivated for future uses.
+                glDisableVertexAttribArray(0);
+                // Swap buffers
         }
 
         void cleanup(){
