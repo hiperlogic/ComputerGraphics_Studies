@@ -21,18 +21,28 @@ ________________________________________________________________________________
 
 ## [01 - B - Sending Data to OpenGL - Programmable Pipeline](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/01_b_plain_triangle_programmable_pipeline/README.md)
 
-## 01 - C - Answers about configuring the Vertex Attrib Array
+## [01 - C - Answers about configuring the Vertex Attrib Array](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/01_c_Plain_Triangle_Programmable_Pipeline_Answers/README.md)
 
-Before we go to proceed to the next project, let's answer those some questions for you to experiment:
+## 02 - Plain Color Triangle
 
-1. If the data we are setting is a static and to draw, do I really need to configure the vertex attrib array and set the vertex attrib pointer at each loop pass?
+So far the instructions discussed how to configure CMake, create a window app (framework) and cconfigure OpenGL for immediate or retained mode printing a plain triangle.
+In this project it will be shown how to change the color of the triangle, still maitaining it plain, in both modes: Immediate Mode and Retained Mode.
+So, create a new project in CMakeLists. I would name it 02_OpenGL_plain_colored_triangle. I won't create two different projects for immediate and retained mode.
 
-    The data is static, meaning it does not change, the vertex attrib array is the same every loop, and, it is the only one. In this example it can be configured just once, outside the loop.
+### Immediate Mode
 
-2. If such configuration (questioned in 1) can be done outside the loop, how to proceed with disabling the vertex attrib array? Does it need to be within the loop? Or outside? If outside, where?
-    The vertex attrib array can be configured outside the loop, previous to it, but it must not be disabled within it, or prior to its start. It must be disabled after the loop ends or the triangle will be drawn only on the first frame and then never more. Since the screen is cleared each frame, it will appear that the triangle is never drawn.
+The immediate mode commands are processed as soon as they are sent. This means, they set the state machine right away.
+Simply put, the command glColor will set the current drawing color, so each vertex sent will be considered to be drawn with that color.
+Considering the code written for the immediate mode in the previous project, let's write the command right before the start of the loop in the mainLoop method.
 
-The code implements the discussed issue.
+```C++
+glColor3f(1.0, 0.1, 0.8);
+```
 
+And we are set. You have a quite pinkish triangle. Want to change its color, change the values and recompile.
 
-Next: Coloring the plain triangle Immediate Mode
+Question: Can I put the color changing within the loop?
+
+Let's take a look at that in the next section.
+
+Next: Changing Color with the App in the Immediate Mode
