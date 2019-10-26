@@ -23,26 +23,9 @@ ________________________________________________________________________________
 
 ## [01 - C - Answers about configuring the Vertex Attrib Array](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/01_c_Plain_Triangle_Programmable_Pipeline_Answers/README.md)
 
-## 02 - Plain Color Triangle
+## 02 - [Plain Color Triangle
+    ### Immediate Mode](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/02_Plain_Color_Triangle/README.md)
 
-So far the instructions discussed how to configure CMake, create a window app (framework) and cconfigure OpenGL for immediate or retained mode printing a plain triangle.
-In this project it will be shown how to change the color of the triangle, still maitaining it plain, in both modes: Immediate Mode and Retained Mode.
-So, create a new project in CMakeLists. I would name it 02_OpenGL_plain_colored_triangle. I won't create two different projects for immediate and retained mode.
-
-### Immediate Mode
-
-The immediate mode commands are processed as soon as they are sent. This means, they set the state machine right away.
-Simply put, the command glColor will set the current drawing color, so each vertex sent will be considered to be drawn with that color.
-Considering the code written for the immediate mode in the previous project, let's write the command right before the start of the loop in the mainLoop method.
-
-```C++
-glColor3f(1.0, 0.1, 0.8);
-```
-
-And we are set. You have a quite pinkish triangle. Want to change its color, change the values and recompile.
-
-Question: Can I put the color changing within the loop?
-
-Let's take a look at that in the next section.
+#### More Colors
 
 Next: Changing Color with the App in the Immediate Mode
