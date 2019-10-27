@@ -4,6 +4,10 @@ project(CG_Studies VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+set(HEADER_FILES utils/loadShader.hpp)
+
+add_library(cgst_utils utils/loadShader.cpp ${HEADER_FILES})
+
 add_executable(00_OpenGL_app_framework OpenGL/00_app_framework/main.cpp)
 add_executable(01_OpenGL_plain_triangle OpenGL/01_plain_triangle/main.cpp)
 add_executable(02_OpenGL_plain_colored_triangle OpenGL/02_plain_colored_triangle/main.cpp)
@@ -26,5 +30,6 @@ endif(UNIX)
 
 target_link_libraries(00_OpenGL_app_framework PRIVATE GLEW::GLEW glfw glm)
 target_link_libraries(01_OpenGL_plain_triangle PRIVATE GLEW::GLEW glfw glm)
-target_link_libraries(02_OpenGL_plain_colored_triangle PRIVATE GLEW::GLEW glfw glm)
+target_include_directories(02_OpenGL_plain_colored_triangle PRIVATE utils)
+target_link_libraries(02_OpenGL_plain_colored_triangle PRIVATE GLEW::GLEW glfw glm cgst_utils)
 
