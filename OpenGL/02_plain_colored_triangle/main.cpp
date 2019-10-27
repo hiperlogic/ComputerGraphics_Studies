@@ -156,6 +156,8 @@ class WindowAppWrapper {
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
 
+            GLuint recColor = glGetUniformLocation(shaderProgram, "recColor");
+
             // Stores the identifier of the vertex array in the OpenGL state machine
             GLuint vertexArrayID;
             // Generates and stores the vertex array index (or name)
@@ -180,12 +182,17 @@ class WindowAppWrapper {
             cout<<"Size: "<<sizeof(triangle_buffer_data)<<"divided by floar: "<<sizeof(triangle_buffer_data)/sizeof(GLfloat);
             glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_buffer_data), triangle_buffer_data, GL_STATIC_DRAW);
 
+            float colors[] = {1.0f, 0.0f, 0.0f, 1.0f, 0.1f, 0.8f, 1.0f, 1.0f, 0.0f}; //Red, somewhat violet and yellow
+            int corrCol = 1; // The somewhat violet is the color of the previous code
+
             // Configure the clear color as we already have learned
-            glClearColor(0.0, 0.0, 0.5, 0.0);
+            glClearColor(0.0f, 0.0f, 0.5f, 0.0f);
 
             do{
                 // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
                 glClear( GL_COLOR_BUFFER_BIT );
+
+                glUniform4f(recColor, colors[corrCol*3], colors[corrCol*3+1],colors[corrCol*3+2], 1.0f);
 
                 // Draw a White (current color) triangle!
                 //Enable the vertex attribute array of index 0
@@ -213,6 +220,12 @@ class WindowAppWrapper {
                 // Swap buffers
                 glfwSwapBuffers(window);
                 glfwPollEvents();
+
+                if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
+                    corrCol = (corrCol+1)%3;
+                    cout<<"Space pressed"<<std::endl;
+                }
+
 
             } // Check if the ESC key was pressed or the window was closed
             while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
