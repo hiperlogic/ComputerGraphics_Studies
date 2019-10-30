@@ -69,6 +69,10 @@ The color is constructed combining the red, green and blue components. In this e
 This color triplet is usual among several software, from OpenGL to painting, illustration or design softwares.
 So, if you know the triplet combination to the color fuchsia, you can compute how much of each color component is needed and fill it yourself, configuring your screen to clear to fuchsia.
 
+______________________________________________________________________________________________
+## Vulkan
+
+
 
 Next: 
     OpenGL: Let's put some graphics on the screen!
