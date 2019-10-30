@@ -335,6 +335,22 @@ First, let's create the Vulkan folder, the 00_app_framework in it and put up an 
 
 Now it is time to configure the project in CMake. You know: add_executable and add_target_library. Let's name the project `00_Vulkan_app_framework`, pointing the file to `Vulkan/00_app_framework/main.cpp`.
 
+Then it is time to search and set up the Vulkan resourses and identifiers:
+
+```
+find_package(Vulkan REQUIRED) # Comment this line if no Vulkan API is installed or your project will fail
+```
+
+Finally, add the vulkan library to the project target:
+
+```
+target_link_libraries(00_Vulkan_app_framework PRIVATE Vulkan::Vulkan)
+target_link_libraries(00_Vulkan_app_framework PRIVATE glfw)
+target_link_libraries(00_Vulkan_app_framework PRIVATE glm)
+```
+
+Now it is time to proceed to the App Window Wrapp code for Vulkan. And yes, you should have followed the OpenGL steps, we will build from that, removing and replacing code excerpts, so, if you haven't done that, do it, follow the OpenGL steps from the beginning of this text.
+
 ### Vulkan API
 
 Vulkan is a recent development in computer graphics APIs, in a sense. Vulkan, in fact, is more close to a Graphics Card Driver API than to a Graphics API, meaning, it will provide the developer with the routines to access the hardware capabilities, giving the developer the freedom to use it as desired, within the hardware constraints.
