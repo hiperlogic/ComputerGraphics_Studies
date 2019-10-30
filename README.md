@@ -646,4 +646,4 @@ But, the instance creation method can throw an exception! Let's treat it! and th
 
 Comming Next: 
     OpenGL: I don't want to clean to Black! I Want to Clean to Fuchsia! How to do that?
-    Vulkan: Setting up the Debug application
+    Vulkan: Setting up the Debug Callback for the Vulkan application
