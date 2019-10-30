@@ -319,4 +319,6 @@ If the error persists, check the lib compilation.
 * Is the lib dir in the path?
 * How about copy the lib binary (dll) to the same folder as is the project executable (build)?
 
-Comming Next: I don't want to clean to Black! I Want to Clean to Fuchsia! How to do that?
+Comming Next: 
+    OpenGL: I don't want to clean to Black! I Want to Clean to Fuchsia! How to do that?
+    Vulkan: Setting up the Debug application
