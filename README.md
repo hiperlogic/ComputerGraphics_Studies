@@ -1,5 +1,5 @@
 # ComputerGraphics_Studies
-- Systems Covered (So Far): OpenGL, ~~Vulkan~~
+- Systems Covered (So Far): OpenGL, Vulkan
 ________________________________________________________________________________
 ## [Initial Setup](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/master/README.md)
 
@@ -15,7 +15,7 @@ ________________________________________________________________________________
 ________________________________________________________________________________
 ## [App Framework Extras](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/00_c_app_framework_extras/README.md)
 
-## Creating the First Graphics and A New Project
+## Creating the First Graphics and A New Project with OpenGL
 
 Now we improve our code, and let's do that by adding some basic graphics in the screen.
 Since the first project is the main app framework, which will suffer improvements pretty soon, let's create another project in order to set that one as main reference.
@@ -90,5 +90,17 @@ To Include a new project:
 
 You can now build and check if the executable for the new project was created and is working properly.
 And yes, you will see nothing. The source was not modified from the previous section yet. It will be done next.
+
+## Probing, Detecting, Configuring and Logically representing Devices and Creating a New Project for Vulkan
+
+Now we improve our code, and let's do that by adding some basic graphics in the screen.
+Since the first project is the main app framework, which will suffer improvements pretty soon, let's create another project in order to set that one as main reference.
+The first thing is to create the folder. Let's create it within the folder `Vulkan` and name it `01_plain_triangle`, copying the `main.cpp` file from the folder `00_app_framework` defined in the last section (branch `00_c_*`).
+
+Configure it in CMake, by adding an executable and setting up the includes and libraries
+
+```
+add_executable(01_Vulkan_simple_triangle Vulkan/01_simple_triangle/main.cpp)
+```
 
 Next: Sending Data to OpenGL
