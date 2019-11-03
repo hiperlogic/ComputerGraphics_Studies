@@ -70,11 +70,197 @@ This color triplet is usual among several software, from OpenGL to painting, ill
 So, if you know the triplet combination to the color fuchsia, you can compute how much of each color component is needed and fill it yourself, configuring your screen to clear to fuchsia.
 
 ______________________________________________________________________________________________
+
 ## Vulkan
 
+Before start writing graphics instructions and watching their results appear on screen, some more actions need to be taken.
+The first feature that will be discussed in this document is an optional one, so you can skip it if you do not want to enable debug callbacks.
+Debug Callbacks are important to catch errors or warnings as they occurr, since Vulkan does not provide a way to catch and treat them, as OpenGL does, so they need to be implemented by the application developer and deal with the errors as intended by the application context.
+The next step is to deal with the hardware device. What have done so far is the creation of an instance for the Vulkan API, which is responsible to communicate with the Vulkan capable devices and the configuration of such instance with the Windows Interface System (WSI), retrieved by using the GLFW routines.
 
+### Debugging and Message Callback
+
+Unlike OpenGL, Vulkan does not caught and treat errors, it does not implement a mechanism of silent failure, where the error is registered but the overall process keep working. Your application may pass through or fail miserably if not properly engineered.
+In order to offer the engineer or developer the hability to check for errors, some layers are usually available to catch errors or informations within runtime and provide means for the error to be circumvented or the application state probed for debugging purposes. This is done via layers.
+Layers were briefly introduced in the previous section. Within instance creation the validation layer availability was probed and the layer name was set up within the createInfo structute telling it that it is supposed to be used.
+However, it was not properly configured.
+To configure a layer the instance must be created with its extension in its extension list and the instance created in the previous section contains only the surface extensions retrieved by GLFW helper routine.
+In this situation, let's create a routine to provide us with the extensions to be configured, considering, inclusive, the validation layer extension and debug extensions.
+As an example, my own extensions and layer (with their extensions) is included for reference. If a layer has no extensions, what happens? Is it implicit?
+Last section discussed how to retrieve layers and how to retrieve extensions... as well as layer specific extensions, feel free to look at the code that generated my list, it will not be discussed here.
+
+So, the routine to retrieve the extensions shall be called `getRequiredExtensions`, and returns a vector of strings (const char*). As usual, let's create it as a private method of the class WindowAppWrapper, providing the code:
+
+```C++
+std::vector<const char*> getRequiredExtensions(){
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions;
+    // Retrieve the required surface extensions and the extensioncount
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    // Instantiate and initialize the return variable
+    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+    if(enableValidationLayers){
+        // Only include the debug extension when debugging!
+        extensions.push_back("VK_EXT_debug_utils");
+    }
+
+    return extensions;
+}
+```
+
+This code can immediately replace the extensions retrieved in the source, between the end of the `appInfo` setup and the start of the `createInfo` declaration, providing the code:
+
+```C++
+// Retrieve the required extensions. Auto alloc the type
+auto extensions = getRequiredExtensions();
+```
+
+And replacing the related assignments to `createInfo` with:
+
+```C++
+// Assign the number of extensions
+createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+// Assign the extensions names
+createInfo.ppEnabledExtensionNames = extensions.data();
+```
+
+You can put them together, right after the `createInfo` declaration if you want.
+
+Compile and run to check if you don't receive a `VK_ERROR_EXTENSION_NOT_PRESENT` error. This extension is implied by the availability of the validation layers, so, it is already being checked.
+
+The extensions configuration is coded, now it is time to create the debug callback function.
+A debug callback function must be a static function. It still will be put it in the class as a private method (easy software engineers, later the arrangements will be done!) and it need to have a specific prototype, the `PFN_vkDebugUtilsMessengerCallbackEXT` prototype.
+This prototype demands the following parameters:
+- messageSeverity: Specifies the [VkDebugUtilsMessageSeverityFlagBitsEXT](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkDebugUtilsMessageSeverityFlagBitsEXT.html) that triggered the callback. It is like the logging severity (in python logging, for instance.). This parameter have the property of comparison, so, it can be checked to identify the level of severity;
+- messageTypes: A bitmask of [VkDebugUtilsMessageTypeFlagBitsEXT](https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkDebugUtilsMessageTypeFlagBitsEXT.html) specifying the kind (or context) of event that triggered the callback. This identifies if the error is unrelated to Vulkan (in computing algorithm, maybe!), if it violates the spec or if it indicates potential non optimal usage;
+- pCallbackData: contains all the callback related data composed of:
+    - pMessage: The debug message as a null terminated string;
+    - pObjects: Array of Vulkan object handles related to the message;
+    - objectCount: Number of objects in the array
+- pUserData: is the user data provided when the VkDebugUtilsMessengerEXT was created.
+
+The only thing coded in the callback will be the output to standard error stream and the return of VK_FALSE, so:
+
+```C++
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
+
+    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+    return VK_FALSE;
+}
+```
+
+VKAPI_ATTR and VKAPI_CALL are modifiers that ensure the function has the right signature for Vulkan to call it. VkBool32 is the return type and indicate if the Vulkan Call that triggered it should be aborted (VK_TRUE) and issues the VK_ERROR_VALIDATION_FAILED_EXT error. For now, just return VK_FALSE.
+
+This callback need to be set up in Vulkan, otherwise it would never be called.
+As much everything in Vulkan, callbacks are managed with a handle that needs to be created and destroyed explicitly. They are part of a _debug messengeg_ and as many as needed can be created. They are stored in an identifier of type `vkDebugUtilsMessengerEXT`, so, one more private attribute for the `WindowAppWrapper` class:
+
+```C++
+VkDebugUtilsMessengerEXT debugMessenger;
+```
+
+And it needs to be setup. Two methods, private, of course, shall be created, one to properly setup and other to configure the structure.
+The structure configuration method will receive a reference for a `VkDebugUtilsMessengerCreateInfoEXT` variable and set up the proper values. These values will be fixed for now. Note that the callback is set up in the last instruction.
+
+
+```C++
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+        createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+    }
+```
+
+For the setup, if the system is not in debug mode, it will not be set up, otherwise, it instantiate and populate the information for the callback creation.
+Finally, create the binding with `CreateDebugUtilsMessengerEXT` passing to which Vulkan instance the debug is attached, the debug info, the allocation callbacks (null for the moment) and the debug messenger address so it be assigned. This instruction returns VK_SUCCESS or error and it is pertinent to check if everything worked accordingly.
+
+```C++
+    void setupDebugMessenger() {
+        if (!enableValidationLayers) return;
+
+        VkDebugUtilsMessengerCreateInfoEXT createInfo;
+        populateDebugMessengerCreateInfo(createInfo);
+
+        if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+            throw std::runtime_error("failed to set up debug messenger!");
+        }
+    }
+```
+
+Call the debugger setup within the `initVulkan` method. You can compile and run the example for the moment.
+Be sure to have called cleanup in the method `run` (after the `mainLoop`). And call the executable via terminal. Nothing happens. No big deal, we have created nothing except the instance to communicate with Vulkan, so, close the windows...
+...
+And witness some messages.
+...
+
+Those error messages occurs because the `VkDebugUtilsMessengerEXT` object is not cleaned up. A call to `vkDestroyDebugUtilsMessengerExt` is needed befor destrying Vulkan instance in order to properly close the system, and the function needs to be explicitly loaded, as it was done with `vkCreateDebugUtilsMessengerEXT`.
+
+```C++
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
+```
+
+Now just update the cleanup method and all is set:
+
+```C++
+void cleanup() {
+    if (enableValidationLayers) {
+        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    }
+
+    vkDestroyInstance(instance, nullptr);
+
+    glfwDestroyWindow(window);
+
+    glfwTerminate();
+}
+```
+
+And the setup is done. Compile and execute again to validate. Upon closing the application those error messages no longer appear.
+
+#### Debugging Instance Creation and Destruction
+
+If you followed up everything up to this point you should have the debugging callback ready for almost anything.
+That is because to create and bind the callback a valid Vulkan instance is needed, and to destroy the callback also. With this process there is no way to debug the Vulkan instance creation or deletion.
+That is the reason the `VkInstanceCreateInfo` structure, the structure set (or configured) to define the instance to be created has a field that stores a pointer to a `VkDebugUtilsMessengerCreateInfoEXT` and it is named pNext.
+Let's use the same callback configured previously, so, the basic procedures are:
+* Define the identifier to store the VkDebugUtilsMessengerCreateInfoEXT data;
+* Populate the identifier with the DebugMessageCreateInfo (there is a method ready for that);
+* Assign the address of the identifier to the createInfo structure field.
+
+Of course, all this is the validation layers are enabled. Look out for the excerpt that assign the layer count and names to createInfo in the method `createInstance` and perform the required changes:
+
+```C++
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+    } else {
+        createInfo.enabledLayerCount = 0;
+
+        createInfo.pNext = nullptr;
+    }
+```
+
+And we are done for Basic Window, Layers and Extensions probing and enabling, Instance Creation and Validation Layer (basic/default) Debug Configuration, for now.
+There are many more settings for validation layers. The ones we specified are just an example and it is advisable (TODO:) to check out validation layers settings by checking out documentation and the vk_layer_settings file at Vulkan_SDK/config directory.
+Now, we need to check out properly what cards and what features they provide in order to start drawing.
 
 Next: 
     OpenGL: Let's put some graphics on the screen!
-    Vulkan: Defining and configuring the Device for Graphics.
+    Vulkan: Probing, Defining and configuring the Device for Graphics.
 
