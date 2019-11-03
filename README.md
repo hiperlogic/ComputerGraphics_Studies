@@ -627,6 +627,9 @@ Device enumeration, selection, set up and logical configuration is needed, and t
 This will be discussed in the next section.
 
 For now, lets wrap up our code for compiling and window generation.
+
+Right now there is a main window instantiation and a Vulkan instance ready to communicate probe, configure and request the hardware, the only methods remaining are the `cleanup` and the `initVulkan`.
+
 In the initVulkan private method the process is simple. First, create the instance. If successful, return successful.
 But, the instance creation method can throw an exception! Let's treat it! and the code becomes:
 
@@ -643,7 +646,23 @@ But, the instance creation method can throw an exception! Let's treat it! and th
         }
 ```
 
+For cleanup we already have a method. It was copied from the OpenGL version that was modified to our Vulkan needs, but it is somewhat empty. OpenGL does not require cleanup procedures in these basic steps, glfw deals with the needed OpenGL cleanup steps, but Vulkan does, glfw only provides the windows and the basic required extensions, so it is the developer job to sweep unused data.
+A simple call to `vkDestroyInstance(instance,nullptr)` is enough for the task to be done:
+
+```C++
+void cleanup() {
+    vkDestroyInstance(instance, nullptr);
+
+    glfwDestroyWindow(window);
+
+    glfwTerminate();
+}
+```
+
+Now there it is, the project can be compiled and executed. We queried the Vulkan environment for layers and extensions, verified if the validation layers for debugging are available, configured the application and instantiated a Vulkan Object with the needed extensions: the surface extensions, obtained via glfw.
+
+Next section let's check out the debugger callback, using the validation layer, the physical device properties and create the logical device representing the physical device.
 
 Comming Next: 
     OpenGL: I don't want to clean to Black! I Want to Clean to Fuchsia! How to do that?
-    Vulkan: Setting up the Debug Callback for the Vulkan application
+    Vulkan: Setting up the Debug Callback for the Vulkan application and probing devices
