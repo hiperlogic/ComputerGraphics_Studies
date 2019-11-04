@@ -192,7 +192,25 @@ So, the very first suitable device is stored in the class attribute and the loop
 
 There are three types of information needed to properly select (and configure) the physical device. The `queues` are the data transmission lines, where data are sent to the device or retrieved from it, the `memories` are where data are stored and the `properties` that describe the devices.
 The suitability of a physical device is related so a set of these properties and features. They must be probed and analyzed in order to select the graphics card to be drawn.
-Device properties have its own structure describing their capabilities, `VkPhisicalDeviceProperties`, as well as a structure to describe its features, `VkPhisicalDeviceFeatures`. Both can be retrieved by their related instructions: `vkGetPhysicalDeviceProperties(VkPhysicalDevice, VkPhisicalDeviceProperties*)` and `vkGetPhysicalDeviceFeatures(VkPhysicalDevice, VkPhisicalDeviceFeatures*)`
+Device properties have its own structure describing their capabilities, `VkPhisicalDeviceProperties`, as well as a structure to describe its features, `VkPhisicalDeviceFeatures`. Both can be retrieved by their related instructions: `vkGetPhysicalDeviceProperties(VkPhysicalDevice, VkPhisicalDeviceProperties*)` and `vkGetPhysicalDeviceFeatures(VkPhysicalDevice, VkPhisicalDeviceFeatures*)`.
+
+For this document, to the moment, what is needed is to know if the `deviceType` obtained from the properties is of VK_PHBYSICAL_DEVICE_TYPE_DISCRETE_GPU and the `deviceFeatures.geometryShader` flag is present.
+
+```C++
+bool isDeviceSuitable(VkPhysicalDevice device) {
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_DISCRETE_GPU && deviceFeatures.geometryShader;
+}
+```
+
+Why `geometryShader` and not `vertexShader` or `fragmentShader`?  (According to [Vulkan Tutorial](https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Physical_devices_and_queue_families), where the code is being improved upon, Application can't function without geometry shaders).
+
+This is enough for machines which have only one physical device with graphics capabilities. But what if your machine have more than one graphics card?
+Instead of just returning the first, you could create a routine to rate the better one to be assigned to the application.
 
 
 
