@@ -249,6 +249,16 @@ vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
 And it will store in graphicsQueue, the private attribute for the class, the handler for the queue considered as index 0 of the graphicsFamily queue available in the device.
 
 Compile the project and check if no errors are raised.
+...
+One is... (if you have re-enabled the destroy debug message in cleanup, otherewise you will see more!)
+The one error within this context is that the device was not destroyed! It needs to be, so, just add the instruction:
+
+```C++
+vkDestroyDevice(device, nullptr);
+```
+
+To the `cleanup` method, compile and test again to check the error is gone!
+
 
 Next: 
     OpenGL The Programmable Pipeline

@@ -220,9 +220,9 @@ class WindowAppWrapper {
         void cleanup(){
 
             if (enableValidationLayers) {
-                // DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+                DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
             }
-
+            vkDestroyDevice(device, nullptr);
             vkDestroyInstance(instance, nullptr);
             glfwDestroyWindow(window);
             glfwTerminate();
@@ -382,7 +382,7 @@ class WindowAppWrapper {
     }
 
     void createLogicalDevice() {
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        QueueFamilyIndices indices = probeQueueFamilies(physicalDevice);
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
