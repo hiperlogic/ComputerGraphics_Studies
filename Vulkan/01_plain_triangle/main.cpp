@@ -4,10 +4,13 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <optional.hpp>
 #include <cstring>
 #include <exception>
 
 using namespace std;
+
+namespace tr2 = std::experimental;
 /*
     Includes the Vulkan API Headers.
 */
@@ -29,6 +32,14 @@ using namespace std;
 using namespace glm;
 
 
+
+typedef struct QueueFamilyIndices {
+    tr2::optional<uint32_t> graphicsFamily;
+
+    bool isComplete(){
+        return graphicsFamily.has_value();
+    }
+} QueueFamilyIndices;
 
 /*
     WindowAppWrapper implements the basic system to initialize resources, process calls (or idle) 
@@ -122,6 +133,7 @@ class WindowAppWrapper {
         bool is_running;
         VkInstance instance; // Stores the Vulkan Instance
         VkDebugUtilsMessengerEXT debugMessenger;
+        VkPhysicalDevice physicalDevice;
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
@@ -185,6 +197,7 @@ class WindowAppWrapper {
             }
             std::cout<<"Starting the Debugger"<<std::endl;
             setupDebugMessenger();
+            setPhysicalDevice();
             return result;
         }
 
@@ -335,6 +348,69 @@ class WindowAppWrapper {
         return VK_FALSE;
     }
 
+
+    void setPhysicalDevice(){
+        // Store the number of physical devices
+        uint32_t deviceCount=0;
+        // Retrieves the number of physical devices available via instance
+        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+        // Throw exception if no Vulkan supported devices were found
+        if (deviceCount == 0) {
+            throw std::runtime_error("No Vulkan supported GPU found!");
+        }
+
+        // Store the devices
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        // Retrieve the devices enumeration within the instance and stores them in the address pointed by devices.data()
+        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+        // Will continue
+        for (const auto& device : devices) {
+            if (isDeviceSuitable(device)){  // How to know it is suitable?
+                physicalDevice = device;
+                break;
+            }
+        }
+
+        if (physicalDevice == VK_NULL_HANDLE){
+            throw std::runtime_error("Failed to retrieve a suitable Graphics device!");
+        }
+    }
+
+    bool isDeviceSuitable(VkPhysicalDevice device) {
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+        QueueFamilyIndices indices = probeQueueFamilies(device);
+        return indices.isComplete();
+    }
+
+    QueueFamilyIndices probeQueueFamilies(VkPhysicalDevice device){
+        QueueFamilyIndices indices;
+
+        // How many families are there for the device?
+        uint32_t queueFamilyCount=0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        // Retrieve the QueueFamilies properties so they can be checked for the needed features
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for(const auto& queueFamily : queueFamilies){
+            if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
+                indices.graphicsFamily = i;
+            }
+            if(indices.isComplete()){
+                break;
+            }
+            i++;
+        }
+
+        return indices;
+    }
 
 };
 

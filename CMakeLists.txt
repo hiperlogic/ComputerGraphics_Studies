@@ -31,8 +31,8 @@ target_link_libraries(01_OpenGL_plain_triangle PRIVATE GLEW::GLEW glfw glm)
 target_include_directories(00_Vulkan_app_framework PRIVATE Vulkan::Vulkan)
 target_link_libraries(00_Vulkan_app_framework PRIVATE Vulkan::Vulkan glfw glm)
 target_include_directories(01_Vulkan_plain_triangle PRIVATE Vulkan::Vulkan)
+target_include_directories(01_Vulkan_plain_triangle PRIVATE utils)
 target_link_libraries(01_Vulkan_plain_triangle PRIVATE Vulkan::Vulkan glfw glm)
-
 
 
 
