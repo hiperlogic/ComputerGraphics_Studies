@@ -134,6 +134,8 @@ class WindowAppWrapper {
         VkInstance instance; // Stores the Vulkan Instance
         VkDebugUtilsMessengerEXT debugMessenger;
         VkPhysicalDevice physicalDevice;
+        VkDevice    device;
+        VkQueue graphicsQueue;
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
@@ -198,6 +200,7 @@ class WindowAppWrapper {
             std::cout<<"Starting the Debugger"<<std::endl;
             setupDebugMessenger();
             setPhysicalDevice();
+            createLogicalDevice();
             return result;
         }
 
@@ -376,6 +379,44 @@ class WindowAppWrapper {
         if (physicalDevice == VK_NULL_HANDLE){
             throw std::runtime_error("Failed to retrieve a suitable Graphics device!");
         }
+    }
+
+    void createLogicalDevice() {
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        VkDeviceQueueCreateInfo queueCreateInfo = {};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+
+        float queuePriority = 1.0f;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkPhysicalDeviceFeatures deviceFeatures = {};
+
+        VkDeviceCreateInfo createInfo = {}; // Yes, it is the same structure as used in createInstance!
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+        // Set the address of the start of the contiguous memory queues definitions
+        createInfo.pQueueCreateInfos = &queueCreateInfo;
+        // And how many queues are specified
+        createInfo.queueCreateInfoCount = 1;
+
+        // No extension count enabled
+        createInfo.enabledExtensionCount = 0;
+
+        // And let's check out the validation layers
+        if (enableValidationLayers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
+        } else {
+            createInfo.enabledLayerCount = 0;
+        }
+
+        if(vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS){
+            throw std::runtime_error("Failed to create the logical device!");
+        }
+
+        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     }
 
     bool isDeviceSuitable(VkPhysicalDevice device) {

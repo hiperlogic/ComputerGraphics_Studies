@@ -157,7 +157,98 @@ With this information in mind, the following code is expected to be understood:
 The previous code is the proper code to draw a triangle using the immediate mode and the fixed pipeline at OpenGL. In it the instructions to clear the screen, set the OpenGL state to receive and to end the retrieval of data, and the data deliver instructions considering individual parameters and pointer (array, or contiguous memory, data) are demonstrated.
 It will be revisited in the next section to illustrate the colored triangle and multi colored triangles.
 
-## Vulkan
+## Assigning a logical device to a physical device in Vulkan
+
+So the first logical steps were taken, the Vulkan driver instance was created and its features verified (and the debug feature was set), from the instance the physical devices were probed and the one with graphical capabilities was set. To know that the physical device have graphics capabilities its queues were probed. Only one queue with graphics capabilities is enough for the device to work for rendering in Vulkan.
+Now the step is to bind the physical device to a logical device, so it can be controlled. The process to create a logical device is similar to setting up the application info, the Vulkan instance or the debug info, that means, populate the structure with the wanted or needed features and call the function to instance the logical device.
+The logical device, represented via structure `VkDevice` needs to be referenced within the application, so, let's add it as a private attribute to the WindowAppWrapper class, naming it `device`. Also, let's add one more private method to the class, naming it `createLogicalDevice` and calling it within `initVulkan`, right after `setPhysicalDevice`.
+
+The structure to create the logical device, `VkDeviceCreateInfo`, requires the queues and the desired device features to be used, and they also are represented by structures, `VkDeviceQueueCreateInfo` and `VkPyshicalDeviceFeatures`.
+
+### Specifying the queues to be created
+
+Each queue family is specified via structure `VkDeviceQueueCreateInfo`, which reports the family index and indicates how many queues of that family the application requires.
+An application can specify some queues of a specific family to be used, this number is small, but rare are the cases where more than one is used, because the command can be buffered via multiple threads and then submitted al at once on the main thread. Apparently this is done with a single low-overhead call.
+Also, there is the possibility (and the need) to assign a priority to the queue, a floating point value ranging from 0.0 to 1.0. Required even if a single queue is used.
+So, the createLogicalDevice method, so far, would have:
+
+```C++
+// There is the need to get the index of the family queue that supports graphics operation within the device
+QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+// This holds the structured data to require the queue
+VkDeviceQueueCreateInfo queueCreateInfo = {};
+queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO; // The structure type
+queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value(); // The queue family with graphics capability
+queueCreateInfo.queueCount = 1; // How many queues to create
+
+float queuePriority = 1.0f;
+queueCreateInfo.pQueuePriorities = &queuePriority;
+```
+
+### Specifying what device features to use
+
+In the previous section, when retrieving the device and checking if it was suitable, previous to probing the queue family, the device features was consulted. It was when the geometry shader feature was verified.
+Vertex, Fragment and Geometry shaders are types of features that will be required in the future, when drawing complex structures. But for the moment, no feature are needed. This will be revisited when demanded.
+However, the logical device structure demands the specification of device features, even if none, so:
+
+```C++
+VkPhysicalDeviceFeatures deviceFeatures = {};
+```
+
+### Creating the logical device
+
+As both structures are ready, they can be used to fill their proper slots in the VkDeviceCreateInfoStructure.
+Structures in Vulkan follow a pattern. All of them have the sType field, and that need to be filled. If they are related to other structures, those are informed as references.
+In the case of queues, since there can be more than one queue requested, they need to be in contiguous area in the memory. The number of the queues need to be specified, as well as the number of extensions (features) requested.
+Once all is specified, the logical device instance can be created, the queue handles can be retrieved and the presentation configuration can be performed.
+
+```C++
+VkDeviceCreateInfo createInfo = {};
+createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+createInfo.pQueueCreateInfos = &queueCreateInfo;
+createInfo.queueCreateInfoCount = 1;
+
+createInfo.pEnabledFeatures = &deviceFeatures;
+```
+
+The remainder information is quite similar to the procedure used to set the validation layers and extensions when creating the Vulkan instance. The only difference is that this time they are specific to the device:
+
+```C++
+createInfo.enabledExtensionCount = 0;
+
+if (enabledValidationLayers) {
+    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+    createInfo.enabledLayerNames = validationLayers.data();
+} else {
+    createInfo.enabledLayerCount = 0;
+}
+```
+
+And for the moment, the information is set. This will be revisited when needed. Now it is time to create the logical device using the function `vkCreateDevice` which receives the physical device related, the create info structure to configure it, the allocator (null pointer for now), and the address to store the logical device handler. If not successful, throw an exception.
+
+```C++
+if(vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create the logical device!");
+}
+```
+
+And the logical device is created. Now it is time to retrieve the required queue.
+
+### Retrieving the Queue handles to send commands to Vulkan
+
+Finally it is time to retrieve the queue from the logical device, this will create a bind from the application to the configured hardware.
+For that it is needed to create the queue handler identifier, so, one more private attribute to the class, with type `VkQueue` and call the `vkGetDeviceQueue` to retrieve it.
+Each queue family can address a number of queues for a device, but only one is being specified in this process, so we only have one index for it and it will be set to zero. Declare the private attribute, name it `graphicsQueue` and call the function in the end of the `createLogicalDevice`:
+
+```C++
+vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+```
+
+And it will store in graphicsQueue, the private attribute for the class, the handler for the queue considered as index 0 of the graphicsFamily queue available in the device.
+
+Compile the project and check if no errors are raised.
 
 Next: 
     OpenGL The Programmable Pipeline
