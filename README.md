@@ -103,4 +103,97 @@ Configure it in CMake, by adding an executable and setting up the includes and l
 add_executable(01_Vulkan_simple_triangle Vulkan/01_simple_triangle/main.cpp)
 ```
 
+It is assumed you are continuing from the previous project, there should already have a `find_package(Vulkan)` in your CMakeLists file. All needed to be done is to include the Vulkan Directory to the target and and needed libraries (glfw and glm).
+
+### Probing the physical devices
+
+Vulkan instance is not the Driver itself. It can be considered as the first layer of communication between the application and the hardware.
+Graphic cards were very expensive in the past and just the idea of having one was heavy in the budget. That's why drivers configuration, or this layer that the Vulkan instance represents, were usually a 1:1 mapping to the hardware. And developers suffered from it! Usually they had to write one routine version for each driver. It was a mess.
+OpenGL is not that different. Although it is usually generic, the availability of proprietary extensions, not only among companies, but among companies products, usually made things messy. But, at least the developers could code extensions use within code and not worry about drivers. Select a minimal and viable set of extensions, the cards they are all implemented and go for it.
+
+How would this be with Vulkan?
+
+Nowadays a system can have more than one, or two, graphic cards. And an application can use more than one!
+Within OpenGL I know there are settings in operating systems to select which card would run which software.
+
+Vulkan interface have instructions to probe the system for GPUs. And to configure them all.
+
+This is the next step in setting up the Vulkan System (yes, this takes way longer than in OpenGL!) and will proceed with a new private, `pickPhysicalDevice` method to our `WindowAppWrapper` class (that is becoming huge... and quite specific! By the end of branch 03 let's make things more... professional... by applying Software Engineering Patterns).
+
+For now let's focus on only one graphics card, so, let's create one more private attribute to store it in the class. The attribute is of type `VkPhysicalDevice` and, for simplicity, it is implicitly destroyed when VkInstance is destroyed, so, no need to code it on cleanup.
+
+```C++
+VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+```
+
+I'll consider you haven't paid too much attention to what I've been writing, so, let me re-state this subject: Vulkan have a pattern to retrieve information. Usually the API to enumerate features or capabilities have three parameters. Some parameters can be null pointers and the combination of null pointers and parameters retrieve different set of data.
+There is one parameter that is mandatory, and that is the address to where the number of features available is (to be) stored. If all the other parameters are null, then this address will retrieve the number of probed features.
+One parameter is where (also a memory address) the features names (or their proper enumerations) are (to be) stored. This parameter must be provided with the number of features to be retrieved (usually the same as the card provides).
+The last parameter states to which specific information the count and the enumerations belong to. It can be a layer name, an extension name or a handler, for the instance, in this specific case.
+
+After all, it is via created instance that we can probe the systems informations. So, let's declare two variables in the private method we just created, proceed to validations and probing. The variables, an unsigned integer named deviceCount, to store the number of graphics devices and a vector of vkPhysicalDevices, to store the physical devices available in the graphics system.
+The instruction to probe them is `vkEnumeratePhysicalDevices`, which has the following signature:
+
+```C++
+    VkResult vkEnumeratePhysicalDevices(
+        VkInstance instance,
+        uint32_t* pPhysicalDeviceCount,
+        VkPhysicalDevice* pPhysicalDevices);
+```
+
+Providing all needed to populate the method:
+
+```C++
+void setPhysicalDevice(){
+    // Store the number of physical devices
+    uint32_t deviceCount=0;
+    // Retrieves the number of physical devices available via instance
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+    // Throw exception if no Vulkan supported devices were found
+    if (deviceCount == 0) {
+        throw std::runtime_error("No Vulkan supported GPU found!");
+    }
+
+    // Store the devices
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    // Retrieve the devices enumeration within the instance and stores them in the address pointed by devices.data()
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+    // Will continue
+
+}
+```
+
+The environment probeb by Vulkan instance can contain several devices, not only graphics devices. This means that we need to check all the physical devices to select those for the desired needs. In this case, graphics.
+Within Vulkan the devices provide elements called `queues`. Vulkan queues can be thought as data or command buses, so, let's consider them as that.
+
+Within base device drivers the devices specifies to which addresses each bus can be acessed, which bus are for retrieval or for sending data, if the bus is bidiretional or onedirectional and most important, which kind of data to send or retrieve via that bus and what is the protocol (data patterns). This somewhat the same for Vulkan queues.
+
+So, we need to check for the device properties and what kind of queues are available in the device. Let's traverse the list of the devices and select the very first device that is suitable:
+
+```C++
+    // Will Continue
+    for (const auto& device : devices) {
+        if (isDeviceSuitable(device)){  // How to know it is suitable?
+            physicalDevice = device;
+            break;
+        }
+    }
+
+    if (physicalDevice == VK_NULL_HANDLE){
+        throw std::runtime_error("Failed to retrieve a suitable Graphics device!");
+    }
+```
+
+So, the very first suitable device is stored in the class attribute and the loop exits. If the loop ends and the physicalDevice is not changed, it throws an exception. However, there is still the need to find the suitable device!
+
+#### Retrieving the device properties, queues and memories information
+
+There are three types of information needed to properly select (and configure) the physical device. The `queues` are the data transmission lines, where data are sent to the device or retrieved from it, the `memories` are where data are stored and the `properties` that describe the devices.
+The suitability of a physical device is related so a set of these properties and features. They must be probed and analyzed in order to select the graphics card to be drawn.
+Device properties have its own structure describing their capabilities, `VkPhisicalDeviceProperties`, as well as a structure to describe its features, `VkPhisicalDeviceFeatures`. Both can be retrieved by their related instructions: `vkGetPhysicalDeviceProperties(VkPhysicalDevice, VkPhisicalDeviceProperties*)` and `vkGetPhysicalDeviceFeatures(VkPhysicalDevice, VkPhisicalDeviceFeatures*)`
+
+
+
 Next: Sending Data to OpenGL
