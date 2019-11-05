@@ -262,3 +262,4 @@ To the `cleanup` method, compile and test again to check the error is gone!
 
 Next: 
     OpenGL The Programmable Pipeline
+    Vulkan Configuring the Surface to Draw: Binding device and window system
