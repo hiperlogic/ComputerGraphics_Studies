@@ -22,7 +22,7 @@ ________________________________________________________________________________
 Back in the day when OpenGL major version was no bigger than 2, the technology provided a hardware architecture specification called `fixed pipeline` or `fixed function pipeline`, which set available two basic modes of drawing named `immediate` and `retained` mode.
 Since retained mode is the default in the programmable pipeline, only the immediate mode will be focused in this section.
 
-### The Fixed Function Pipeline
+### The Fixed Function Pipeline and Immediate Mode
 
 The fixed function pipeline was the main OpenGL pipeline process as designed when OpenGL was idealized, in a time where only the immediate mode was available and this was the first steps to learn OpenGL, so let's present it.
 In order to use the Fixed function pipeline two procedures must be taken, configure the matrices to process the vertices and configure the OpenGL state machine to receive the vertices. Those procedures are coded in the mainLoop routine, the configuration is coded prior to the loop, while the data delivery/retrieval is configured within the loop.
@@ -261,5 +261,5 @@ To the `cleanup` method, compile and test again to check the error is gone!
 
 
 Next: 
-    OpenGL The Programmable Pipeline
+    OpenGL Sending Data Via Vertex Buffer Objects
     Vulkan Configuring the Surface to Draw: Binding device and window system
