@@ -19,7 +19,7 @@ ________________________________________________________________________________
 
 ## [01 - A - Sending Data to OpenGL](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/01_a_plain_triangle/README.md)
 
-## 01 - B - Sending Data to OpenGL - Programmable Pipeline
+## 01 - B - Sending Data to OpenGL - Vertex Buffer Objects
 
 From OpenGL 2.0 onward a new pipeline was introduced, the `Programable Pipeline`, an improvement and simplification of the fixed function pipeline that added a generic processor to the `Transform and Lighting` stage, now called `Vertex Shading` and to the section related to the visual processing of the result sent by the rasterizer, that is the processes of `Texture Environment`, `Color Sum`, `Fog` and `Alpha Test`, which was labeled `Fragment Shading`.
 
