@@ -147,6 +147,10 @@ class WindowAppWrapper {
             "VK_LAYER_KHRONOS_validation"
         };
 
+        const std::vector<const char*> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
+
         #ifdef NDEBUG
             const bool enableValidationLayers = false;
         #else
@@ -417,8 +421,11 @@ class WindowAppWrapper {
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         // Set the address of the start of the contiguous memory queues definitions
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
-        // No extension count enabled
-        createInfo.enabledExtensionCount = 0;
+
+        // Retrieve the number of extensions to enable (they are verified in isDeviceSuitable)
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+        // And set them to the structure
+        createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
         // And let's check out the validation layers
         if (enableValidationLayers) {
@@ -444,12 +451,35 @@ class WindowAppWrapper {
     }
 
     bool isDeviceSuitable(VkPhysicalDevice device) {
+
         VkPhysicalDeviceProperties deviceProperties;
         VkPhysicalDeviceFeatures deviceFeatures;
+
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
         QueueFamilyIndices indices = probeQueueFamilies(device);
-        return indices.isComplete();
+
+        bool extensionsSupported = checkDeviceExtensionSupport(device);
+
+        return indices.isComplete() && extensionsSupported;
+    }
+
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+        uint32_t extensionCount;
+
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+        for(const auto& extension : availableExtensions){
+            requiredExtensions.erade(extension.extensionName);
+        }
+
+        return requiredExtensions.empty();
     }
 
     QueueFamilyIndices probeQueueFamilies(VkPhysicalDevice device){
