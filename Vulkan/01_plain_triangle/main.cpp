@@ -476,7 +476,7 @@ class WindowAppWrapper {
         std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
         for(const auto& extension : availableExtensions){
-            requiredExtensions.erade(extension.extensionName);
+            requiredExtensions.erase(extension.extensionName);
         }
 
         return requiredExtensions.empty();
