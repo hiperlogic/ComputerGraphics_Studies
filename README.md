@@ -25,11 +25,11 @@ From OpenGL 2.0 onward a new pipeline was introduced, the `Programable Pipeline`
 
 So, we had the following in the fixed pipeline:
 
-API->Primitive Processing->**_Transform and Lighting_**->Primitive Assembly->Rasterizes->**_Texture Environment->Color Sum->Fog->Alpha Test_**->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
+API->Primitive Processing->**_Transform and Lighting_**->Primitive Assembly->Rasterizer->**_Texture Environment->Color Sum->Fog->Alpha Test_**->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
 
 And got the following in the programmable pipeline:
 
-API->Primitive Processing->**_Vertex Shader_**->Primitive Assembly->Rasterizes->**_Fragment Shader_**->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
+API->Primitive Processing->**_Vertex Shader_**->Primitive Assembly->Rasterizer->**_Fragment Shader_**->Depth and Stencil->Color Buffer Blend->Dither->Frame Buffer.
 
 ### The Vertex Shader
 
@@ -702,7 +702,7 @@ Unlike images, the image views were explicitly created. They need to be explicit
 ```
 
 We are nearly set to start drawing. The image and image views are ready to be used, but only to retrieve data for the moment. This means they are not ready to be drawn, to be used as a render target. They need to be configured as framebuffers, which is done in the graphics pipeline.
-This means that, for the moment, the basic Vulkan configuration is done.
+This means that, for the moment, the basic Vulkan configuration is done for the physical device. Now it is time to configure the subsytem that will be used to draw the triangle.
 
 Next: 
     OpenGL Coloring the plain triangle Immediate Mode
