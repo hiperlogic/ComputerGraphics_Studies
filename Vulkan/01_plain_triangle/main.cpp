@@ -7,6 +7,8 @@
 #include <optional.hpp>
 #include <cstring>
 #include <exception>
+#include <algorithm>
+
 
 using namespace std;
 
@@ -136,6 +138,7 @@ class WindowAppWrapper {
         VkPhysicalDevice physicalDevice;
         VkDevice    device;
         VkQueue graphicsQueue;
+        VkSurfaceKHR surface;
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
@@ -223,6 +226,7 @@ class WindowAppWrapper {
                 DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
             }
             vkDestroyDevice(device, nullptr);
+            vkDestroySurfaceKHR(instance, surface, nullptr);
             vkDestroyInstance(instance, nullptr);
             glfwDestroyWindow(window);
             glfwTerminate();
@@ -417,6 +421,13 @@ class WindowAppWrapper {
         }
 
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+    }
+
+    void createSurface() {
+        // Luckily glfw configures everything needed for cross platform Vulkan Surface creation
+        if(glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS){
+            throw std::runtime_error("failed to create window surface!");
+        }
     }
 
     bool isDeviceSuitable(VkPhysicalDevice device) {
