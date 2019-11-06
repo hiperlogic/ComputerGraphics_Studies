@@ -139,6 +139,7 @@ class WindowAppWrapper {
         VkPhysicalDevice physicalDevice;
         VkDevice    device;
         VkQueue graphicsQueue;
+        VkQueue presentQueue;
         VkSurfaceKHR surface;
 
         const std::vector<const char*> validationLayers = {
@@ -387,25 +388,34 @@ class WindowAppWrapper {
     }
 
     void createLogicalDevice() {
+        // Return the family indices
         QueueFamilyIndices indices = probeQueueFamilies(physicalDevice);
-        VkDeviceQueueCreateInfo queueCreateInfo = {};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-        queueCreateInfo.queueCount = 1;
 
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        // Build a set with t he family indices.
+        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
+        // And set up a base queue priority
         float queuePriority = 1.0f;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+        for(uint32_t queueFamily: uniqueQueueFamilies) {
+            VkDeviceQueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
+
 
         VkPhysicalDeviceFeatures deviceFeatures = {};
 
         VkDeviceCreateInfo createInfo = {}; // Yes, it is the same structure as used in createInstance!
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-        // Set the address of the start of the contiguous memory queues definitions
-        createInfo.pQueueCreateInfos = &queueCreateInfo;
         // And how many queues are specified
-        createInfo.queueCreateInfoCount = 1;
-
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        // Set the address of the start of the contiguous memory queues definitions
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
         // No extension count enabled
         createInfo.enabledExtensionCount = 0;
 
@@ -422,6 +432,7 @@ class WindowAppWrapper {
         }
 
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(device, indices.presentFamily.value(),0, &presentQueue);
     }
 
     void createSurface() {
