@@ -245,7 +245,7 @@ float queuePriority = 1.0f;
 ```
 
 Now it is time to traverse the set and build each queue create info structure.
-Note that since it is a set, if both indices are the same, only one structure will be created.
+Note that since it is a set, if both indices are the same, only one structure will be created. But, the set header must be included in order to be used (```#include <set>```).
 
 ```C++
 for(uint32_t queueFamily: uniqueQueueFamilies) {
