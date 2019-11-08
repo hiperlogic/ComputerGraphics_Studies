@@ -111,7 +111,7 @@ The proper color output will be discussed later.
 
 #### Compiling the shaders
 
-Store the each of the shaders in a separate file. I'll call them `basic_triangle.vert` and `basic_triangle.frag`, in the `Shaders` folder. Shaders don't have an official extension, but those are commonly used to identify them.
+Store the each of the shaders in a separate file. I'll call them `basic_triang.vert` and `basic_triang.frag`, in the `Shaders` folder. Shaders don't have an official extension, but those are commonly used to identify them.
 
 and execute the following commands:
     On Windows
@@ -196,8 +196,8 @@ So far the `createGraphicsPipeline` private method is as follow:
 
 ```C++
 void createGraphicsPipeline() {
-    auto vertShaderCode = readFile("shaders/basic_triangle_v.spv");
-    auto fragShaderCode = readFile("shaders/basic_triangle_f.spv");
+    auto vertShaderCode = readFile("shaders/basic_triang_v.spv");
+    auto fragShaderCode = readFile("shaders/basic_triang_f.spv");
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -246,7 +246,7 @@ void createGraphicsPipeline() {
     VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
     fragShaderStageInfo.sType = VK_STRUCTURE_SYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = vertShaderModule;
+    fragShaderStageInfo.module = fragShaderModule;
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -699,6 +699,16 @@ void cleanup() {
 
 A lot has been done. How about run your program?!
 
+...
+
+Yeah... failed to open file... that's because the executable are in the `build` directory and the shaders are not in the same directory as the executable... just copy the `Shaders` directory to the build directory and be happy!
+
+But... wait... nothing appearing? WHYYYY? The reason?... Framebuffers...
+
+But we have already learned a lot and coded a lot, let's learn how to create and set the framebuffer in the next branch.
 
 
-Next: Coloring the plain triangle Immediate Mode
+Next: 
+    OpenGL: Coloring the plain triangle Immediate Mode
+    Vulkan: Creating and binding the framebuffer... and finally drawing the triangle!
+    

@@ -719,8 +719,8 @@ class WindowAppWrapper {
     }
 
     void createGraphicsPipeline() {
-        auto vertShaderCode = readFile("shaders/basic_triangle_v.spv");
-        auto fragShaderCode = readFile("shaders/basic_triangle_f.spv");
+        auto vertShaderCode = readFile("Shaders/basic_triang_v.spv");
+        auto fragShaderCode = readFile("Shaders/basic_triang_f.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -734,7 +734,7 @@ class WindowAppWrapper {
         VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
         fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = vertShaderModule;
+        fragShaderStageInfo.module = fragShaderModule;
         fragShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
