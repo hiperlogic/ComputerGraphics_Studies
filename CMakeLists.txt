@@ -9,7 +9,7 @@ add_executable(01_OpenGL_plain_triangle OpenGL/01_plain_triangle/main.cpp)
 add_executable(02_OpenGL_plain_colored_triangle OpenGL/02_plain_colored_triangle/main.cpp)
 add_executable(00_Vulkan_app_framework Vulkan/00_app_framework/main.cpp)
 add_executable(01_Vulkan_plain_triangle Vulkan/01_plain_triangle/main.cpp)
-add_executable(02_Vulkan_plain_triangle Vulkan/02_plain_triangle/main.cpp)
+add_executable(02_Vulkan_plain_colored_triangle Vulkan/02_plain_colored_triangle/main.cpp)
 
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
@@ -40,9 +40,9 @@ target_link_libraries(00_Vulkan_app_framework PRIVATE Vulkan::Vulkan glfw glm)
 target_include_directories(01_Vulkan_plain_triangle PRIVATE Vulkan::Vulkan)
 target_include_directories(01_Vulkan_plain_triangle PRIVATE utils)
 target_link_libraries(01_Vulkan_plain_triangle PRIVATE Vulkan::Vulkan glfw glm)
-target_include_directories(02_Vulkan_plain_triangle PRIVATE Vulkan::Vulkan)
-target_include_directories(02_Vulkan_plain_triangle PRIVATE utils)
-target_link_libraries(02_Vulkan_plain_triangle PRIVATE Vulkan::Vulkan glfw glm)
+target_include_directories(02_Vulkan_plain_colored_triangle PRIVATE Vulkan::Vulkan)
+target_include_directories(02_Vulkan_plain_colored_triangle PRIVATE utils)
+target_link_libraries(02_Vulkan_plain_colored_triangle PRIVATE Vulkan::Vulkan glfw glm)
 
 
 
