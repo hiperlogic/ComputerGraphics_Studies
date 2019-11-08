@@ -326,7 +326,7 @@ Scissor describes the area within a viewport where the pixels will be stored. Ev
 Viewport also defines the min and maxDepth values for depth planes. The default is from 0.0 to 1.0 and will remain, but need to be set.
 
 ```C++
-    VkVierport viewport = {}
+    VkViewport viewport = {}
     viewport.x = 0.0f;
     viewport.y = 0.0f;
     viewport.width = (float) swapChainExtent.width;
@@ -639,7 +639,7 @@ Just recollecting:
 * Pipeline layout: configures the communications between the application and the shaders;
 * Render Passes configures the buffers and how they are used in the graphics pipeling using the communications set.
 
-It is time to finish the configuration and create the graphics pipeline using the structure. This needs to be done before the shaders are destroyed.
+It is time to finish the configuration and create the graphics pipeline using the structure. This needs to be done before the shaders are destroyed and of course, this means it is done in the `createGraphicsPipeline` method.
 The structure holds how many shader stages are sed, the address of the array with shader stages, each of the fixed function structures created, the pipeline layout the renderpass and the index of the subpass where this graphics pipeline will be used.
 The graphics pipeline is configured specifically for a render pass, but there are some render passes configuration that provides "compatibility" and can be assigned to the same graphics pipeline. To be compatible they must comply to [some characteristics](https://www.khronos.org/registry/vulkan/specs/1.0/html/vkspec.html#renderpass-compatibility). All resumes to the attachments.
 There are two optional parametes, the handle and the index, that can be used to create derived (new) pipelines. This idea is to provide a differential way of creating pipeline, reducing code written and instructions executed. For now, they will be a null handle and an invalid index (-1).
