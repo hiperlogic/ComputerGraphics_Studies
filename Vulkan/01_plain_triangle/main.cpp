@@ -9,7 +9,7 @@
 #include <cstring>
 #include <exception>
 #include <algorithm>
-
+#include <fstream>
 
 using namespace std;
 
@@ -155,7 +155,7 @@ class WindowAppWrapper {
         std::vector<VkImageView> swapChainImageViews;
         VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
-
+        VkRenderPass renderPass;
 
 
         const std::vector<const char*> validationLayers = {
@@ -172,7 +172,7 @@ class WindowAppWrapper {
             const bool enableValidationLayers = true;
         #endif
 
-        static std::vector<unsigned char> readFile(const std::string& filename) {
+        static std::vector<char> readFile(const std::string& filename) {
             // Declare the file (input) stream loading from filename, seting the pointer to the end position (ate) and consider it binary
             std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -184,7 +184,7 @@ class WindowAppWrapper {
             // Starting at the end this means that the position indicates the size in bytes of the file.
             size_t fileSize = (size_t) file.tellg();
             // Allocate the buffer array managed by vector to the filesize
-            std::vector<unsigned char> buffer(fileSize);
+            std::vector<char> buffer(fileSize);
             // Return the pointer to the beginning
             file.seekg(0);
             // Read the data (filesize bytes) into the buffer
@@ -272,11 +272,15 @@ class WindowAppWrapper {
             if (enableValidationLayers) {
                 DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
             }
+
+            vkDestroyPipeline(device, graphicsPipeline, nullptr);
             vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
             vkDestroyRenderPass(device, renderPass, nullptr);
+
             for(auto imageView : swapChainImageViews) {
                 vkDestroyImageView(device, imageView, nullptr);
             }            
+            
             vkDestroySwapchainKHR(device, swapChain, nullptr);
             vkDestroyDevice(device, nullptr);
             vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -698,7 +702,7 @@ class WindowAppWrapper {
         }
     }
 
-    VkShaderModule createShaderModule(const std::vector<unsigned char>& code) {
+    VkShaderModule createShaderModule(const std::vector<char>& code) {
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
@@ -718,18 +722,14 @@ class WindowAppWrapper {
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
-
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
-
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
-        vertShaderStageInfo.sType = VK_STRUCTURE_SYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
         vertShaderStageInfo.module = vertShaderModule;
         vertShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
-        fragShaderStageInfo.sType = VK_STRUCTURE_SYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         fragShaderStageInfo.module = vertShaderModule;
         fragShaderStageInfo.pName = "main";
@@ -749,7 +749,7 @@ class WindowAppWrapper {
         inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 
-        VkViewport viewport = {}
+        VkViewport viewport = {};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
         viewport.width = (float) swapChainExtent.width;
@@ -772,7 +772,7 @@ class WindowAppWrapper {
         VkPipelineRasterizationStateCreateInfo rasterizer = {};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.depthClampEnable = VK_FALSE;
-        rasterizer.rasterizedDiscardEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -784,9 +784,9 @@ class WindowAppWrapper {
 
 
         VkPipelineMultisampleStateCreateInfo multisampling = {};
-        multisampling.sType = VK_STRUCTURE_TYPW_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.rasterizationSamples = VK_SAMPlE_COUNT_1_BIT;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
         multisampling.minSampleShading = 1.0f;
         multisampling.pSampleMask = nullptr;
         multisampling.alphaToCoverageEnable = VK_FALSE;
@@ -796,7 +796,7 @@ class WindowAppWrapper {
         VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE;
-        colorBlendAttachment.srcColorBLendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
         colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -810,14 +810,14 @@ class WindowAppWrapper {
         colorBlending.logicOp = VK_LOGIC_OP_COPY;
         colorBlending.attachmentCount = 1;
         colorBlending.pAttachments = &colorBlendAttachment;
-        colorBlending.blencConstants[0] = 0.0f;
-        colorBlending.blencConstants[1] = 0.0f;
-        colorBlending.blencConstants[2] = 0.0f;
-        colorBlending.blencConstants[3] = 0.0f;
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
 
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-        pipelineLayoutInfo.sType = VK_STRUCT_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 0;
         pipelineLayoutInfo.pSetLayouts = nullptr;
         pipelineLayoutInfo.pushConstantRangeCount = 0;
@@ -834,7 +834,7 @@ class WindowAppWrapper {
 
         pipelineInfo.pVertexInputState = &vertexInputInfo;
         pipelineInfo.pInputAssemblyState = &inputAssembly;
-        pipelineInfo.pViewportState = &viewprotState;
+        pipelineInfo.pViewportState = &viewportState;
         pipelineInfo.pRasterizationState = &rasterizer;
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pDepthStencilState = nullptr; // Optional
@@ -847,7 +847,7 @@ class WindowAppWrapper {
         pipelineInfo.subpass = 0; //Subpass index to start. Like entry point
 
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-        pipelineInfo.basePipelineIndes = -1; // Optional
+        pipelineInfo.basePipelineIndex = -1; // Optional
 
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS){
             throw std::runtime_error("Failed to create graphics pipeline");
@@ -875,7 +875,7 @@ class WindowAppWrapper {
         colorAttachmentRef.attachment = 0;
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkSupbassDescription subpass = {};
+        VkSubpassDescription subpass = {};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1; // only 1 color attachment
         subpass.pColorAttachments = &colorAttachmentRef;

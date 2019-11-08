@@ -137,9 +137,10 @@ Although in future this series of documents will use the libshaderc to load the 
 
 The file data will be streamed using the std::ifstream process, starting the position at the end of the file in order to retrieve the size to configure the vector, that is, the byte array to be returned. Before the byte array allocation it is important to check if the stream is opened. If not, an error ocurred and must be thrown.
 Once the byte array (buffer) is configured (the memory area is allocated), the file pointer is moved to the begining and the data can be read into the buffer data. At the end of the reading the stream must be closed and the buffer returned.
+Be sure to include the `fstream` header.
 
 ```C++
-static std::vector<unsigned char> readFile(const std::string& filename) {
+static std::vector<char> readFile(const std::string& filename) {
     // Declare the file (input) stream loading from filename, seting the pointer to the end position (ate) and consider it binary
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -151,7 +152,7 @@ static std::vector<unsigned char> readFile(const std::string& filename) {
     // Starting at the end this means that the position indicates the size in bytes of the file.
     size_t fileSize = (size_t) file.tellg();
     // Allocate the buffer array managed by vector to the filesize
-    std::vector<unsigned char> buffer(fileSize);
+    std::vector<char> buffer(fileSize);
     // Return the pointer to the beginning
     file.seekg(0);
     // Read the data (filesize bytes) into the buffer
@@ -169,10 +170,10 @@ Use it to read the SPIR-V shader files just created within the `createGraphicsPi
 #### Creating Shaders Module
 
 Creating a shader module is a simple process, just point to the buffer and specify its length. And since it is a creation procedure, a filled structure, `VkShaderModuleCreateInfo`, is needed to be provided to the creation instruction.
-The catch in this process is that the size of the bytecode is specified in `bytes`, but the bytecode pointer is a `uint32_t` instead of an `unsigned char`, so, a casting is needed, and it must be a `reinterpret_cast`, since it is indicating that the pointer type (the data stored in the address) is of a different type, and the module can be created with `vkCreateShaderModule`.
+The catch in this process is that the size of the bytecode is specified in `bytes`, but the bytecode pointer is a `uint32_t` instead of an `char`, so, a casting is needed, and it must be a `reinterpret_cast`, since it is indicating that the pointer type (the data stored in the address) is of a different type, and the module can be created with `vkCreateShaderModule`.
 
 ```C++
-VkShaderModule createShaderModule(const std::vector<unsigned char>& code) {
+VkShaderModule createShaderModule(const std::vector<char>& code) {
     VkShaderModuleCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
@@ -389,7 +390,7 @@ This structure configures how the fragments and pixels (already in the framebuff
 VkPipelineMultisampleStateCreateInfo multisampling = {};
 multisampling.sType = VK_STRUCTURE_TYPW_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 multisampling.sampleShadingEnable = VK_FALSE;
-multisampling.rasterizationSamples = VK_SAMPlE_COUNT_1_BIT;
+multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 multisampling.minSampleShading = 1.0f;
 multisampling.pSampleMask = nullptr;
 multisampling.alphaToCoverageEnable = VK_FALSE;
@@ -422,10 +423,10 @@ colorBlending.logicOpEnable = VK_FALSE;
 colorBlending.logicOp = VK_LOGIC_OP_COPY;
 colorBlending.attachmentCount = 1;
 colorBlending.pAttachments = &colorBlendAttachment;
-colorBlending.blencConstants[0] = 0.0f;
-colorBlending.blencConstants[1] = 0.0f;
-colorBlending.blencConstants[2] = 0.0f;
-colorBlending.blencConstants[3] = 0.0f;
+colorBlending.blendConstants[0] = 0.0f;
+colorBlending.blendConstants[1] = 0.0f;
+colorBlending.blendConstants[2] = 0.0f;
+colorBlending.blendConstants[3] = 0.0f;
 ```
 
 Just set the values for now. Blending will be discussed in the last section: Transparency.
@@ -463,7 +464,7 @@ In the createGraphicsPipeline continue defining the needed info structures:
 
 ```C++
 VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-pipelineLayoutInfo.sType = VK_STRUCT_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 pipelineLayoutInfo.setLayoutCount = 0;
 pipelineLayoutInfo.pSetLayouts = nullptr;
 pipelineLayoutInfo.pushConstantRangeCount = 0;
@@ -581,7 +582,7 @@ Layout specifies the attachment image layout during the subpass. In the attachme
 The subpass is described using a `VkSubpassDescription` structure. The structure fields indicates what is the bind point in the pipeline for this subpass, how much of each attachment kind it has and the address of the each attachment reference.
 
 ```C++
-VkSupbassDescription subpass = {};
+VkSubpassDescription subpass = {};
 subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 subpass.colorAttachmentCount = 1; // only 1 color attachment
 subpass.pColorAttachments = &colorAttachmentRef;
@@ -673,7 +674,7 @@ pipelineInfo.renderPass = renderPass;
 pipelineInfo.subpass = 0; //Subpass index to start. Like entry point
 
 pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-pipelineInfo.basePipelineIndes = -1; // Optional
+pipelineInfo.basePipelineIndex = -1; // Optional
 
 if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS){
     throw std::runtime_error("Failed to create graphics pipeline");
