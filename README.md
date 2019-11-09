@@ -413,43 +413,56 @@ The render pass can now end, as well as the command buffer, since this is the on
     }
 ```
 
+`createFramebuffer`, `createCommandPool` and `createCommandBuffers` need to be called within `initVulkan`. They are part of the Vulkan configuration.
+
 And... no, you won't be able to see anything yet.
 
 ### Rendering and Presentation
 
-What you have done so far is the graphics card configuration of your "rendering" machine, a very simple one, yes, but is is a rendering machine, with the entry points to call its own features.
+What you have done so far is the graphics card configuration of your "rendering" machine, a very simple one, yes, but is is a rendering machine, with the entry points to call its own features and the internals about how those features work, what resources they use, etc.
 Now it can be configured for your application (there is almost no configuration, since it is very simple) and used.
-In OpenGL, in the mainLoop, it calls OpenGL commands to draw. Vulkan is more elaborated, it needs more instructions, so, let's create another method to draw the frames.
-Operations in Vulkan are paralelized. This means that things can go out of order is no synchronization is performed. And paralel operations can trigger race conditions.
+In OpenGL, in the `mainLoop`, it calls OpenGL commands to draw. This is because the OpenGL drawing chain of commands is somewhat simple and can be done within that pass. Vulkan is more elaborated, it needs more instructions, so, let's create another method to draw the frames, `drawFrame`.
+Operations in Vulkan are paralelized. This means that things can go out of order if no synchronization is performed. And paralel operations can trigger race conditions.
 To avoid race conditions some structures need to be used, like semaphores or fences. Let's keep with semaphores and create some.
-Now the image can be acquired from the swap chain and the imageview framebuffer can be sent to the command buffer, with subpass dependencies set.
+Now the image can be acquired from the swap chain and the imageview framebuffer can be set as the retrieval point of the command buffer, whose commands are submitted via graphics queue.
+The graphics queue processes the commands with the render pass (with its stages set and states configured) and subpasses attachments and dependencies configured, writinf the result in the framebuffer.
 Finally, return the framebuffer to the swap chain so it can present the image.
-Sync image creation command submition and image presentation (and framebuffer) consumption adjusting semaphores (available and finished) for each frames;
 
 #### The Setup
 
-    (TODO: The Text)
-    Create the drawFrame method. Call it within mainLoop after PollEvents.
+As mentioned, OpengL drawing chain of instructions is somewhat simple, they can be done within the mainLoop (at least for these kind of example, the triangle), but Vulkan is somewhat more elaborated. For that a new method will be created: `drawFrames`, let's make it `public` and call it within the `mainLoop` repetition, just before polling the events.
 
 #### The Synchronization
-    drawFrame
-        Acquire image from swap chain
-        execute command buffer with that image in the framebuffer (command to graphics queue)
-        return the image to swap chain for presentation (image to present queue)
 
-Events are set with a single call. But instructions take time to be executed.
-There will be more calls than executions. This needs to be sync'ed.
-Two types of sync: Fences and Semaphores
-Fences can be queried. Semaphore can't.
+The `drawFrame` chain of instructions need to acquire the image from the swap chain to assign it as the destination of the command buffer. The command buffer submits the commands to the image using the graphics queue, which will produces the result via render pass, with the stages set and states configured, and write into the framebuffer assigned to the image view. The image is then retrieved from the swap chain and sent to the present queue for presentation. This is when the image is rendered.
+However, acquiring the image, submiting the commands, rendering, (re) acquiring the image and presenting are asynchronous instructions.
+This means that when those instructions are issued, the presenting instructions may be called before the command submitions (or rendering processes) are finished, producing visual glitches, because it is an incorrect behavior.
+To prevent this, it is pertinent the coding of synchronization processes, using structures like semaphores or fences.
+The main difference between both is that Fences can be queried, while semaphores can't. Let's use the semaphore for the moment.
 
 ##### Semaphores
 
-create the semaphores (two private attributes) and the createSemaphores method
+Semaphores are processes aplied to resources that block those resources usage until releasing them. They work exactly like the traffic lights, blocking the usage of the pass by one direction, while allowing the other to use it.
+In the current example the resource to be managed is related to the command buffer and the related image.
+The image has 4 possible states:
+- Ready to be drawn (idle, content unknown)
+- Drawing (under process)
+- Ready to be presented (idle, content known)
+- Presenting (under process)
+
+Create two semaphores to control those states, create the semaphores (two private attributes) and the createSemaphores method, which need to be called in the initVulkan.
+
 
 ```C++
 VkSemaphore imageAvailableSemaphore;
 VkSemaphore renderFinishedSemaphore;
+```
 
+The two semaphores will indicate when the image is available for drawing and when the image finished rendering, that's because when rendering it cannot be set to draw.
+
+Creating the semaphores in Vulkan is a process as standardized as any creation process in Vulkan. Declare the create structure, fill in the fields with the proper values and use the `vkCreate*` related instructions with the proper parameters.
+
+```C++
 void createSemaphores() {
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -460,16 +473,23 @@ void createSemaphores() {
             throw std::runtime_error("Failed to create semaphores!");
     }
 }
+```
 
+Since the semaphores are explicitly created and stored to be used within the application, they need to be destroyed explicitly in the cleanup. Destroy them right befor the destruction of the `device`.
+
+```C++
 void cleanup(){
     ...
     vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
     vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
 }
-
 ```
 
 ##### Acquiring image from Swap Chain
+
+With the semaphores ready, it is time to acquire the image to set as the destination of the drawing commands sent to the graphics queue.
+The image acquired is, in fact, the index of the image provided,  for the device, via swapchain using the instruction `vkAcquireNextImageKHR`.
+The remainder parameters indicates the timeout settings, wich is disabled when set to the max value of a uint 64, a semaphore to signal the request, the imageAvailableSemaphore or VK_NULL_HANDLE, a fence to signal the request or VK_NULL_HANDLE, and the reference where to store the image index acquired.
 
 ```C++
 void drawFrame() { 
@@ -479,6 +499,17 @@ void drawFrame() {
 ```
 
 ##### Submitting the command buffer
+
+Once the image is acquired this indicates that it is ready to go under processing.
+There are 2 basic processing stages in graphics applications: Being drawn and being presented. 
+The image acquired was in the intention to being drawn and drawing to the image is done by submitting commands via command buffer using the graphics queue, with the image as destination for the processed data.
+
+In order to submit commands a structure need to be declared and configured to be sent to the buffer.
+The `VkSubmitInfo` structure informs how many waitSemaphore there are, what are the wait semaphore to be set, and what are the pipeline stages influenced by these semaphores. So far, the only stage (attachment) configured is the color attachment, so that it is. The wait semaphore is the imageAvailableSemaphore, that must be signaled as false while drawing.
+
+The structure also specifies how many command buffers are to be used and what are those command buffers, as well as what are the semaphores to be signaled when the process finishes. This semaphore is the renderFinishedSemaphore.
+
+Once the submit info is configureg, the command can be submitted using `vkQueueSubmit` indicating the graphics queue, how many submissions, the array of submissions and a fence for synchronization that can be a null handler.
 
 ```C++
 void drawFrame() { 
@@ -571,6 +602,17 @@ void drawFrame() {
 }
 ```
 
-Now you can compile... and see the result!
+Now you can compile... and see the result! Finally!
 
-Next: Changing Color with the App in the Immediate Mode
+But, if you are on debug mode you'll see a lot of errors...
+
+This is because of two things related to the drawFrame operations being asynchronous. The submition may be sent to command buffers in pending states and and they may still be ongoing when closing the program. Although the program runs, this is a bad idea... mainly for programs with animations...
+To prevent the error upon closing the application, call vkDeviceWaitIdle just after the repetition in mainLoop, pass the device as parameter, this will be improved in the future.
+
+The error on the submition process will be dealt in the next branch.
+But now, you should have a red triangle on a black background!
+We are almost closing the gap between OpenGL and Vulkan... aren't we? (arent we?)
+
+Next: 
+    OpenGL: Changing Color with the App in the Immediate Mode
+    Vulkan: Synchronization of submissions to command buffers.
