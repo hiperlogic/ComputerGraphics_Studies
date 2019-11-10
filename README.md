@@ -562,9 +562,9 @@ void createRenderPass() {
 }
 ```
 
-##### Subpasses (VkAttachmentReference VkSubpassDescription)
+##### Subpasses and Dependencies (VkAttachmentReference VkSubpassDescription VkSubpassDependency)
 
-OpenGL does not have the concept of render passes, however, it is somehow possible to achieve some similar effects using things like the accumulation buffer or rendering the color buffer to a texture to be used in the next rendering iteration. Those were highly inefective.
+OpenGL does not have the concept of render passes, however, it is somehow possible to achieve some similar effects using things like the accumulation buffer or rendering the color buffer to a texture to be used in the next rendering iteration. This process, however, is highly innefective.
 Vulkan render passes allows to attach rendering operations that are depended on intermediary framebuffers, prior to drawing on the screen, in order to perform postprocessing or produce intricated visual effects. This means that the render pass have configurable subpasses, and this is a quite versatile tool to produce elaborated graphics.
 It was said earlier, Vulkan provides more flexibility for the developers, at the cost of complexity or effort, and this is one of this process. But if these intermediary rendering operations are grouped into one render pass, Vulkan can optimize the process, conserving memory bandwith for better performance. Only one subpass will be used for the triangle.
 Every subpass has at least one reference to an attachment. So far only one attachment was configured, and it will be the only one for this example.
@@ -576,8 +576,33 @@ colorAttachmentRef.attachment = 0;
 colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 ```
 
-In this example, that will be used, the attachment references the index of the attachment descriprion in the attachment description array. Only one description was created, so, its index is 0.
-Layout specifies the attachment image layout during the subpass. In the attachment only the image layout previous and after the rendering was configured. Vulkan automatically transition the layouts during the subpasses. Since the attachment configured is a color buffer, and this is its intended use, the image layout must refer to a color attachment, and it is set for performance.
+In this example the attachment references the index of the attachment desctiprion in the attachment description array. Only one description was created, so, its index is 0.
+Layout specifies the attachment image layout during the subpass. In the attachment only the image layout previous and after the rendering was configured. Vulkan automatically transition the layouts during the subpasses, but the `after` operation (loaOp) of the current subpass and the `previous` operation (storeOp) of the next subpass counts as an implicit subpass and must be configured as dependencies.
+
+There are two built-in dependencies that deal with the transitions. One for the start of the render pass and one for the end of the render pass.
+However, if the transition occurs prior to the acquisition of an image, it will have no information to be fed. It would be the same as applying a function with a dynamic allocated memory address as parameter, but before the memory was allocated.
+There are two possible methods to prevent this issue in Vulkan. One involves setting up a specific stage within semaphores. The other is to make the render pass to wait for a specific stage, in this case, the stage related to the color attachment, which can be accomplished using the subpass dependencies.
+Since the dependency specifies the transition between subpasses, it needs two subpasses, the `src` subpass and the `dst` subpass. `src` subpass can be considered to be the subpass currently in execution, which is about to end its operations, while `dst` subpass can be considered the subpass to be executed next.
+The dependency identifies them using their position index in the subpass array. In this example only one subpass will be defined, related to the color attachment, so, the index will be 0.
+Subpass indiced must be considered for that render pass iteration, but transitions also occurs between render passes, this mean that the first subpass transitional dependency will rely on the last subpass of the previous (or current) renderpass and the first subpass of the current (or next) renderpass.
+To indicate this dependency the subpass index must be assigned the value `VK_SUBPASS_EXTERNAL`, meaning that the needed data comes from an external resource, or that the data will be sent to an external resource (another render pass iteration).
+The dependency being set in this example will deal with synchronization issues, because it needs to acquire an image only when the image is ready to be drawn upon. This demands the setting of stage masks, to specify the execution of the pipeline stage specified in that mask and a flag to indicate the access scope via access specified in the mask.
+In this example only the color buffer (or attachment) is being used. The stage mask is related to the pipeline stage that deals with the color attachment. The source subpass has already done its operation, so its access mask value is indiferent and can be 0 (TODO: What happens if other value?), but the destination subpass needs to specify the access mask. The values on the color buffer must be read, as well as values must be written in the color buffer.
+
+
+```C++
+VkSubpassDependency dependency = {};
+dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+dependency.srcAccessMask = 0;
+
+dependency.dstSubpass = 0;
+dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+```
+
+
+Since the attachment configured is a color buffer, and this is its intended use, the image layout must refer to a color attachment, and it is set for performance.
 
 The subpass is described using a `VkSubpassDescription` structure. The structure fields indicates what is the bind point in the pipeline for this subpass, how much of each attachment kind it has and the address of the each attachment reference.
 
