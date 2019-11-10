@@ -9,7 +9,7 @@
 #include <cstring>
 #include <exception>
 #include <algorithm>
-
+#include <fstream>
 
 using namespace std;
 
@@ -153,6 +153,9 @@ class WindowAppWrapper {
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
         std::vector<VkImageView> swapChainImageViews;
+        VkPipelineLayout pipelineLayout;
+        VkPipeline graphicsPipeline;
+        VkRenderPass renderPass;
 
 
         const std::vector<const char*> validationLayers = {
@@ -169,6 +172,29 @@ class WindowAppWrapper {
             const bool enableValidationLayers = true;
         #endif
 
+        static std::vector<char> readFile(const std::string& filename) {
+            // Declare the file (input) stream loading from filename, seting the pointer to the end position (ate) and consider it binary
+            std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+            if(!file.is_open()) {
+                throw std::runtime_error("failed to open file!");
+            }
+
+            // Returns the pointer position relative to the beginning of the stream.
+            // Starting at the end this means that the position indicates the size in bytes of the file.
+            size_t fileSize = (size_t) file.tellg();
+            // Allocate the buffer array managed by vector to the filesize
+            std::vector<char> buffer(fileSize);
+            // Return the pointer to the beginning
+            file.seekg(0);
+            // Read the data (filesize bytes) into the buffer
+            file.read(buffer.data(), fileSize);
+
+            file.close();
+
+            return buffer;
+
+        }
 
         VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
             auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -221,6 +247,7 @@ class WindowAppWrapper {
             }
             std::cout<<"Starting the Debugger"<<std::endl;
             setupDebugMessenger();
+            createSurface();
             setPhysicalDevice();
             createLogicalDevice();
             createSwapChain();
@@ -251,12 +278,12 @@ class WindowAppWrapper {
 
             vkDestroyPipeline(device, graphicsPipeline, nullptr);
             vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-
             vkDestroyRenderPass(device, renderPass, nullptr);
 
             for(auto imageView : swapChainImageViews) {
                 vkDestroyImageView(device, imageView, nullptr);
             }            
+            
             vkDestroySwapchainKHR(device, swapChain, nullptr);
             vkDestroyDevice(device, nullptr);
             vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -570,7 +597,7 @@ class WindowAppWrapper {
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
         for(const auto& availableFormat : availableFormats) {
-            if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR){
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR){
                 return availableFormat;
             }
         }
@@ -856,15 +883,6 @@ class WindowAppWrapper {
         subpass.colorAttachmentCount = 1; // only 1 color attachment
         subpass.pColorAttachments = &colorAttachmentRef;
 
-        VkSubpassDependency dependency = {};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
         VkRenderPassCreateInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -872,13 +890,12 @@ class WindowAppWrapper {
         renderPassInfo.pAttachments = &colorAttachment;
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
 
         if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS){
             throw std::runtime_error("failed to create render pass!");
         }
     }
+
 };
 
 int main() {
