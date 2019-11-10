@@ -1060,6 +1060,7 @@ class WindowAppWrapper {
         presentInfo.pResults = nullptr;
 
         vkQueuePresentKHR(presentQueue, &presentInfo);
+        vkQueueWaitIdle(presentQueue);
     }
 
 };

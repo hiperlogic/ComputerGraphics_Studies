@@ -609,7 +609,9 @@ But, if you are on debug mode you'll see a lot of errors...
 This is because of two things related to the drawFrame operations being asynchronous. The submition may be sent to command buffers in pending states and and they may still be ongoing when closing the program. Although the program runs, this is a bad idea... mainly for programs with animations...
 To prevent the error upon closing the application, call vkDeviceWaitIdle just after the repetition in mainLoop, pass the device as parameter, this will be improved in the future.
 
-The error on the submition process will be dealt in the next branch.
+The error on the submition process can be easily solved by adding the `vkQueueWaitIdle(presentQueue);` instruction to the end of the drawFrames method. The message vanishes, but this would cost on performance, making it even worse than OpenGL. 
+Next branch this issue will be better dealt with by improving the synchronization mechanisms.
+
 But now, you should have a red triangle on a black background!
 We are almost closing the gap between OpenGL and Vulkan... aren't we? (arent we?)
 
