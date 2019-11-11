@@ -617,4 +617,4 @@ We are almost closing the gap between OpenGL and Vulkan... aren't we? (arent we?
 
 Next: 
     OpenGL: Changing Color with the App in the Immediate Mode
-    Vulkan: Synchronization of submissions to command buffers.
+    Vulkan: Synchronization of submissions to command buffers and swap chain reconstruction.
