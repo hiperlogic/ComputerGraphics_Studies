@@ -64,4 +64,92 @@ Finally, the code for the color change. What it will do is just increment the co
 This way, when you press space, the color will change.
 It will go very, very fast... I know... I just show how to change colors, not how to handle key presses. Good luck with that!
 
+## Vulkan
+
+Now the red triangle is being drawn on the screen, on a black background, but there are still improvements to the pipeline to be made.
+In the end of the last branch an instruction were added to the end of the drawFrames method in order to "fix" the messages provided by the validation layer. But this instruction tells the whole pipeline to wait for the presentQueue to be idle, making it produce just one frame per iteration.
+The stages that the pipeline processed through are idle and could be used to produce data for the next frame. Think of the stages as the computing pipeline stages, to fetch instruction, fetch data, execute, write, ... (remember the Computer Architecture classes!).
+Multiple frames can be produced (_in flight_) while still bounding the ammount of work that piles up.
+
+All we need to do is to specify the ammount of frames to be processed concurrently. This can be done declaring a constant.
+
+```C++
+const int MAX_FRAMES_IN_FLIGHT = 2;
+```
+
+And specifying a pair of semaphores to each frame, not to the pipeline.
+
+```C++
+/* replacing these
+        VkSemaphore imageAvailableSemaphore;
+        VkSemaphore renderFinishedSemaphore;
+*/
+
+std::vector<VkSemaphore> imageAvailableSemaphores;
+std::vector<VkSemaphore> renderFinishedSemaphores;
+```
+
+Change the method that create the semaphores to create these:
+
+```C++
+void createSemaphores() {
+    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS) {
+
+            throw std::runtime_error("failed to create semaphores for a frame!");
+        }
+}
+```
+
+And, of course, destroy them on the cleanup.
+
+```C++
+void cleanup() {
+    ...
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+    }
+
+    ...
+}
+```
+
+And, since the semaphores are bound to the frames, it is important to track the current frame. A private attribute will be needed for this. Initialize it with 0.
+
+```C++
+size_t currentFrame = 0;
+```
+
+The semaphores are used in the drawFrame method, so it need to be updated:
+
+```C++
+void drawFrame(){
+    ...
+    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+    ...
+
+    VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+
+    ...
+
+    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+
+    ...
+    // vkQueueWaitIdle(presentQueue);  // This won't be needed anymore!
+
+    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+```
+
+
+
 Next: Plain Colored Triangle Retained Mode, Version 1 - The Fragment Shader Configuration
