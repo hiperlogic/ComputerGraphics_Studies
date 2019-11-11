@@ -1,3 +1,9 @@
 .vscode
 build
+debug
+OpenGL_prev
+Vulkan_prev
+utils_prev
+
+
 
