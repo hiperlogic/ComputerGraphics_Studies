@@ -339,7 +339,7 @@ void main() {
 }
 ```
 
-The fragment shader remains unchanged.
+The fragment shader remains unchanged, with no input and one output that is the draw color.
 
 ### The vertex data
 
@@ -412,9 +412,9 @@ When we set up the graphics pipeline we adjusted the vertex input information to
 
 ```C++
 auto bindingDescription = Vertex::getBindingDescription();
-auto attributeDescription = Vertex::getAttributeDescription();
+auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
-vertexInputInfo.vertexBindDescriptionCount = 1;
+vertexInputInfo.vertexBindingDescriptionCount = 1;
 vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
 vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
@@ -448,7 +448,7 @@ VkBuffer vertexBuffer;
 void createVertexBuffer() {
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+    bufferInfo.size = sizeof(triangle[0]) * triangle.size();
     bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -503,7 +503,7 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties){
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
-    for(uint32_t i = 0; i < memProperties.memoryTyperCount; i++) {
+    for(uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if((typeFilter & (1<<i)) &&
             (memProperties.memoryTypes[i].propertyFlags & properties) == properties){ 
             return i;
@@ -556,10 +556,14 @@ Copying the vertex data to the buffer requires the buffer memory to be mapped in
 Once the memory is mapped, data can be provided to ir using, for instance, the memcpy instruction and then it can be unmapped with `vkUnmapMemory.
 
 ```C++
+void createVertexBuffer() {
+    ...
+
 void* data
 vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+    memcpy(data, triangle.data(), (size_t)bufferInfo.size);
 vkUnmapMemory(device, vertexBufferMemory);
+}
 ```
 
 And these routines should perform the intent. Should, because the driver may not immediately copy the data into the buffer memory due to caching or other operations or that writes to the buffer are not visible in the mapped memory yet.
@@ -581,10 +585,41 @@ vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPi
 VkBuffer vertexBuffers[]={vertexBuffer};
 VkDeviceSize offsets[] = {0};
 vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(vertices.size()),1,0,0);
+vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(triangle.size()),1,0,0);
 ```
 
-If you did everything right, compile and run to see the familiar red triangle. Try changing the color of the triangle in the fragment to explore.
+If you did everything right, compile the shaders and update the shaders to be loaded in the code. Compile the application and run to see the familiar red triangle. Try changing the color of the triangle in the fragment to explore.
+
+And try to compare both shaders, the ones for Vulkan and the ones for OpenGL, what changes?
+
+### Shaders Difference:
+
+OpenGL Vertex Shader Receives a Vec3 instead of a Vec2 as in the Vulkan shader. Both outputs a Vec4.
+If you inspect the OpenGL vertex data sent from the application to the shader:
+
+```C++
+
+// OpenGL
+
+GLfloat triangle_buffer_data[]={
+    -1.0f, -1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    0.0f, 1.0f, 0.0f
+};
+
+
+// Vulkan
+const std::vector<Vertex> triangle = {
+    {{0.0f, -0.5f}}, 
+    {{0.5f, 0.5f}}, 
+    {{-0.5f, 0.5f}}
+};
+```
+
+Although OpenGL data is a simple array, each vertex is provided 3 values, X, Y and Z. That is why in the OpenGL shader the vertices input data is a vec3, but all Z values are zero! To output a vec4 it adds/sets the last coordinate as 1.
+For Vulkan each vertex has only 2 data, X and Y and that is why in the Vulkan shader the input data is a vec2. To output the vec4 it adds the 3rd and 4th value for each vertex, setting them to 0 and 1, respectively. The result will be the same.
+
+Try changing the Vulkan vertex shader to be the same as the OpenGL vertex shader. Do not forget to change the Vulkan code as well!
 
 Next: 
     OpenGL and Vulkan! Using the Application to change the triangle color.
