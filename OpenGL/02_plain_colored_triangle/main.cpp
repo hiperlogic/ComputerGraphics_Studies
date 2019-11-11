@@ -188,7 +188,7 @@ class WindowAppWrapper {
                 glClear( GL_COLOR_BUFFER_BIT );
 
                 // Draw a White (current color) triangle!
-                //Enable the vertex attribute array of index 0
+                //Enable the vertex attribute array of (shader) layout index 0
                 glEnableVertexAttribArray(0);
                 // Bind the current buffer to the vertex buffer
                 glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);

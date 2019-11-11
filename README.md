@@ -1,5 +1,5 @@
 # ComputerGraphics_Studies
-- Systems Covered (So Far): OpenGL, ~~Vulkan~~
+- Systems Covered (So Far): OpenGL, Vulkan
 ________________________________________________________________________________
 ## [00 - Initial Setup](https://github.com/hiperlogic/ComputerGraphics_Studies/blob/master/README.md)
 
@@ -254,6 +254,7 @@ layout(location = 0) in vec3 pos;
 The layout modifier indicates that the vertices are being defined at vertex attrib location 0. We have seen this in the application code before, right at the instructions:
 
 ```C++
+// Enable attribute for vertex shader with layout index 0
 glEnableVertexAttribArray(0);
 ```
 
@@ -315,4 +316,275 @@ You can go and execute the program to witness the pinkish triangle in the blue b
 You can play with the shader as well... change the color, easier than having to recompile again, huh!?
 But what if... I want to change the color from the application? Using the keyboard like before?
 
-Next: Using the Application to change the triangle color.
+## Vulkan
+
+So far the Vulkan Bootstrap configures the rendering machine (swap chain, images, framebuffers, stages and states, pipeline, render passes) and executes it with a vertex shader that specifies a hard coded triangle to be drawn.
+This was a good approach to teach the bootstrap configuration for Vulkan, but there are some features that were neglected, like the vertex input state, the input assembly state and the usual memory allocation and mapping mechanisms.
+
+In this section this gap will be closed, the vertex buffer communication will be presented, as well as how to communicate the vertices to the shader using the traditional `memcpy` instruction and later how to use a staging buffer to copy to a high performance memory.
+
+### the 2D triangle shaders
+
+In order to change that we need to make some changes to the vertex shaders. Let's create another vertex shader for this example and call it just `triang.vert` and `triang.frag`.
+
+The vertex shader need to be changed because it will now receive the vertices from the application. Location 0 indicates the position index for the application to identify the resource in the shader. So, the location 0 at the vertex shader indicates the vertices coordinates. It could indicate other kind of data, like normals, texture coordinates or vertex color, for instance.
+
+```C++
+#version 450
+
+layout(location = 0) in vec2 inPosition;
+
+void main() {
+    gl_Position = vec4(inPosition, 0.0, 1.0);
+}
+```
+
+The fragment shader remains unchanged.
+
+### The vertex data
+
+For vertex data we will use the glm types.
+Let's start simple, with a structure storing positions only. Conveniently GLM provides C++ types that max exactly with the vector types used in the shader language:
+
+```C++
+typedef struct Vertex {
+    glm::vec2 pos;
+} Vertex;
+```
+
+Now we can create the triangle.
+
+```C++
+const std::vector<Vertex> triangle = {
+    {{0.0f, -0.5f}}, 
+    {{0.5f, 0.5f}}, 
+    {{-0.5f, 0.5f}}
+};
+```
+
+### The Input Descriptions (VkVertexInputBindingDescription VkVertexInputAttributeDescription)
+
+With the data designed (it will be improved), the pipeline must be configured to the vertex format. This is done using a description structure for the vertex input, the `VkVertexInputBindingDescription`.
+For simplicity, let's code it within the structure and configure it.
+Data structures for Graphics aggregates more than vertices. They can aggregate also the color of each vertex, the texture coordinate assigned to the vertex, the normal computed for the vertex and any other kind of data per vertex the designer seem fit. This is the reason for the description.
+So far, the vertex structure created only contains the vertex position in 2D, so, let's configure it.
+In the future all per-vertex data will be packed together, so, we just have one binding, indexed at position 0. With a distance, or stride, consisting of the size of the vertex structure. This was also configured in OpenGL.
+The last field specifies the inputRate of the vertices data. This input rate can be per vertex or per instance. Since we are not going to use instanced rendering, let's pick the per-vertex data.
+
+```C++
+typedef struct Vertex{
+    glm::vec2 pos;
+    static VkVertexInputBindingDescription getBindingDescription() {
+        VkVertexInputBindingDescription bindingDescription = {};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        return bindingDescription;
+    }
+}
+```
+
+There is a second structure needed to be fed to the pipeline in order to properly extract the vertex information, and that is the attributr description.
+The attribute description tells the pipeline what are the data contained in the input stream, in their position, with their format.
+So far our vertex only holds the position information, but during this study process it will be improved to contain the vertex color, vertex texture coordinate and vertex normal.
+Since the binding descriptor was coded within the structure, let's take this feature advantages and code it there.
+So far we have only one attribute for the vertex, its position coordinates in 2D.
+The attribute description relates the attrribute to the binding descriptor. The structure is returning only one binding descriptor, so it must be the same (zero).
+It also indicates to which data in the shader the information is to be passed. The field location holds this information and relates directly to the `location` information in the shader `layout`.
+Then it specifies the format of the data. For the position we have 2 float data, so it can be represented with the `VK_FORMAT_R32G32_SFLOAT` constant indicating a 2D vector of float.
+The last field is the offset, that means, how many bytes from the start of the structure. This structure, so far, only holds the position, the offset for the position is 0, but there is a macro called `offsetof` that calculates the offset of a specific field within a structure and it is very useful for our situation, at least will be in the future. But let's use it here too.
+Since we have only one field (`pos`), we will return only one structure. Be aware that this routine will be improved in the future.
+
+```C++
+static std::array<VkVertexInputAttributeDescription, 1> getAttributeDescriptions() {
+    std::array<VkVertexInputAttributeDescription, 1> attributeDescriptions = {};
+
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, pos); // Position of pos in the struct Vertex
+
+    return attributeDescriptions;
+}
+```
+
+When we set up the graphics pipeline we adjusted the vertex input information to process nothing, since the vertices were hard coded in the shader. Now it is time to properly configure it with the information we are providing. Find the vertexInputInfo in the `createGraphicsPipeline` method and fill in the information.
+
+```C++
+auto bindingDescription = Vertex::getBindingDescription();
+auto attributeDescription = Vertex::getAttributeDescription();
+
+vertexInputInfo.vertexBindDescriptionCount = 1;
+vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+```
+
+Note that the vertex attribute and binding informations are provided considering the struct, not the data itself.
+And the pipeline is ready to accept the vertex data in the format of the vertices container and pass it on to the vertex shader. However this is not done. We set up how the data must be, now it is time to set up the buffer, where the data will be sent from (or retrieved from).
+
+### The Vertex Buffer (VkBufferCreateInfo vkCreateBuffer)
+
+Buffers are just memory regions used to store arbitrary data that can be read by the device. The books (at least the `Learning Vulkan`) call buffers as `memory`, so, when it says to probe, enumerate or retrieve memory, it is saying buffers.
+We already specified one king of buffer, the command buffers, now let's specify the vertex buffer, used to store vertices data.
+
+Unlike the used Vulkan objects, buffers do not automatically allocate memory for themselves, nor even the command buffers, we used a command pool, remember? Those are Vulkan objects to allocate the command buffers, but was not automatically.
+
+To allocate the memory for the vertex buffer let's create a new private method. Put it before createCommandBuffers in initVulkan and call it `createVertexBuffer`.
+
+Although Vulkan does not automatically allocate the memory for buffers, the process to create a buffer in Vulkan proceeds like the other Vulkan objects creation process, declare a structure, fill it with the configuration desired, use it in the instruction to create the object.
+
+The structure to be declared and filled is the `VkBufferCreateInfo`, which specifies the size of the buffer, its usage and how it shall be shared.
+For now, the size of the buffer will be the size of the `Vertex` struct times the number of vertices declared (that means, 3), the buffer usage is to store vertex data and the sharing mode is exclusive, meaning it will only be used by a specific queue family, that is the graphics queue family.
+There is another field that will be dealt later, the `flags`, which is useful to configure sparse buffer memory. Since this is not being used in the moment, set it to 0.
+Once the structure is configured, use it with vkCreateBuffer to create the vertex buffer. Don't forget to declare it in the class private scope. The type, of course, is VkBuffer.
+
+```C++
+...
+private:
+...
+VkBuffer vertexBuffer;
+...
+void createVertexBuffer() {
+    VkBufferCreateInfo bufferInfo = {};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if(vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create vertex buffer!");
+    }
+}
+```
+
+And since it is explicitly created, it needs to be explicitly destroyed.
+
+```C++
+void cleanup() {
+    cleanupSwapChain();
+    vkDestroyBuffer(device, vertexBuffer, nullptr);
+}
+```
+
+### Memory Requirements (VkMemoryRequirements vkGetBufferMemoryRequirements)
+
+The buffer is created, but it just indicates the access point to the memory, which was not assigned to it.
+The memory need to be allocated externaly and need to be queried first. This is performed querying the memory requirements via vkGetBufferMemoryRequirements instruction for the vertexBuffer created for the device and storing the information in a VkMemoryRequirements object.
+
+The VkMemoryRequirements object has three fields:
+* The `size` of the required memory in bytes, which may differ from bufferInfo.size set earlier;
+* the `alignment` specifies the offset in bytes where the buffer begins in the allocated region of memory. This depends on the fields `usage` and `flags` defined in bufferInfo and
+* `memoryTypeBits` specifies the bit field of memory types that are suitable for the buffer.
+
+```C++
+void createVertexBuffers(){
+    ...
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
+
+}
+```
+
+
+Graphics cards can offer different types of memory to allocate. They vary in terms of operations and performance. The buffer and the application requirements need to be defined in order to discover the right type of memory to use. Let's create another private method for this purpose.
+
+Memories are implementation of the physical devices, they are provided in an abstraction by the logical device, but the underlying capabilities are specified in the physical ones and they are the ones to be queried.
+This demand 2 processes, the declaration of a variable of type `VkPhysicalDeviceMemoryProperties` to store the memory properties of the memories queried on the device and the call to `vkGetPhysicalDeviceMemoryProperties`, which will effectively perform the query on the device and fill in the results in the variable/object declared.
+
+Then it is just a matter of traversing the list of memory types checking for the specified typeFilter and properties desired. If none is found, throws an error.
+The type filter is used to specifyh the bit field of memory types that are suitable, returning the index to the memory. But we are not just interested in a memory type that is suitable for the vertex buffer. We need to be able to write the data to that memory.
+Memory types array consists of VkMemoryType structs that specify the heap and properties of each type of memory. The properties define special features of the memory, like being able to map it so if can be written from the CPU. There are bits indicating what property is available. Those bits are usually provided via constants, like VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, all of which are required and will be explained when the memory mapping is coded.
+So, the probing loop checks the typeFilter, but also the properties.
+
+```C++
+uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties){ 
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+    for(uint32_t i = 0; i < memProperties.memoryTyperCount; i++) {
+        if((typeFilter & (1<<i)) &&
+            (memProperties.memoryTypes[i].propertyFlags & properties) == properties){ 
+            return i;
+        }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
+}
+```
+
+### Memory Allocation (VkMemoryAllocateInfo VkAllocateMemory)
+
+With the right memory type it is possible to actually alocate the memory. This is done filling the VkMemoryAllocateInfo structure with the allocation size and the memoryTypeIndex, which is retrieved via findMemoryType function. And then it is just a matter of calling vkAllocateMemory with the device, allocation info and the address to store the vertexBufferMemory, which will be used within the application, so, create a private attribute to it.
+Once the memory is allocated it can be boud to the vertex buffer, specifying the offset for the first data of the memory. Since this memory is allocated specifically for the vertex buffer, this offset can be zero. If non zero, it must be divisible by memRequirements.alignment.
+
+```C++
+...
+VkDeviceMemory vertexBufferMemory;
+...
+void createVertexBuffer(){
+    ...
+
+    VkMemoryAllocateInfo allocInfo = {}
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate vertex buffer memory!");
+    }
+
+    vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+}
+```
+
+And since we allocated it explicitlyu, we need to destroy it.
+
+```C++
+void cleanup() {
+    cleanupSwapChain();
+    vkDestroyBuffer(device, vertexBuffer, nullptr);
+    vkFreeMemory(device, vertexBufferMemory, nullptr);
+    ...
+}
+```
+
+### Filling the Vertex Buffer (vkMapMemory vkUnmapMemory)
+
+Copying the vertex data to the buffer requires the buffer memory to be mapped into CPU accessible memory. This is easily performed using the `vkMapMemory` instruction.
+Once the memory is mapped, data can be provided to ir using, for instance, the memcpy instruction and then it can be unmapped with `vkUnmapMemory.
+
+```C++
+void* data
+vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+    memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+vkUnmapMemory(device, vertexBufferMemory);
+```
+
+And these routines should perform the intent. Should, because the driver may not immediately copy the data into the buffer memory due to caching or other operations or that writes to the buffer are not visible in the mapped memory yet.
+These problems can be fixed in two ways:
+* Use a memory heap that is host coherent, indicated with VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+* Call vkFlushMappedMemoryRanges after writing to the mapped memory and call vkInvalidateMappedMemoryRanges before reading from the mapped memory.
+
+The first approach ensures that the mapped memory always matches the contents of the allocated memory, but can have a slightly worse performance.
+
+Flushing mempory ranges using a coherent memory heap doesn't mean that data are actually visible on the GPU. It means that the driver is aware of our writes to the buffer and is guaranteed to be complete as of the next call to vkQueueSubmit.
+
+### Binding the vertex buffer (vkCmdBindVertexBuffers)
+
+Now it is needed to bind the vertex buffer within the rendering operations. Rendering operations are configured in `createCommandBuffers`, just before vkCmdDraw using `vkCmdBindVertexBuffers` which specifies the command buffer, the offset and the number of vertex buffers to bind, which in our case is just one. The last two specifies the array of vertices buffers and the array of offsets with which each should start from.
+
+```C++
+vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+VkBuffer vertexBuffers[]={vertexBuffer};
+VkDeviceSize offsets[] = {0};
+vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(vertices.size()),1,0,0);
+```
+
+If you did everything right, compile and run to see the familiar red triangle. Try changing the color of the triangle in the fragment to explore.
+
+Next: 
+    OpenGL and Vulkan! Using the Application to change the triangle color.
