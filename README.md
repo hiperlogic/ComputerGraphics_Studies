@@ -285,4 +285,223 @@ One thing though! We can't resize the windows!
 
 ###  Swap chain recreation.
 
-Next: Plain Colored Triangle Retained Mode, Version 1 - The Fragment Shader Configuration
+So far, the triangle is being drawn for a predefined image area as configured when creating the swap chain. The window being created by the application is fixed, so this is not much of a problem. However, a proper application should let users define the window dimensions, which would change the image area, requiring a reconfiguration of the swap chain and the images it provides.
+
+In order to overcome this issue the swap chain and relative structures need to be recreated. This would mean the swap chain itself, the image views, since they are related to the images provided by the swap chain, the render pass, because it uses the swap chain and maps to the framebuffer, the graphics pipeline, the framebuffers and the command buffer.
+
+But before calling all these methods, it needs to wait for the device to be idle, because the related functions may touch resources that are being used, and it shouldn't do that.
+
+The swap chain needs to be the first created, because it is responsible to define the image information (pixel format and dimensions, for instance) and to provide the images to be used.
+
+Then it is time to create the views to provide access to those images. Followed by the render pass, which uses the swap chain images pixel format. Although the pixel format is rarely changed, it is advised to recreate the render pass.
+The viewport and scissor rectangle depends on the window size. They are specified during graphics pipeline creation and needs to be dealt with, although this is possible to be avoided by using dynamic states to viewport and scissor rectangles. Finally the framebuffers and command buffers delends directly on the swap chain images. Since the images were recreated, they need to be redefined.
+
+```C++
+void recreateSwapChain(){
+    vkDeviceWaitIdle(device);
+    createSwapChain();
+    createImageViews();
+    createRenderPass();
+    createGraphicsPipeline();
+    createFramebuffers();
+    createCommandBuffers();
+}
+```
+
+But we need to make sure the old swapchain and related objects need to be cleaned up. So some of the swapchain cleanup code will be aggregated in a new private method and removed from the cleanup method.
+
+One thing to observe in the cleanupSwapChain is the addition of the command buffers cleanup, that was not present previously.
+
+This is because previously we let the command buffers to be destroyed by the command pool. It is done automatically when the command pool is destroyed.
+But destroying and creating another command pool is not effective. That is why we just ask for the command pool to destroy its own command buffers.
+
+```C++
+void recreateSwapChain(){
+    vkDeviceWaitIdle(device);
+
+    cleanupSwapChain();
+
+    createSwapChain();
+    createImageViews();
+    createRenderPass();
+    createGraphicsPipeline();
+    createFramebuffers();
+    createCommandBuffers();
+}
+
+void cleanupSwapChain(){
+    for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
+        vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
+    }
+
+    vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+    vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyRenderPass(device, renderPass, nullptr);
+
+    for (size_t i=0; i<swapChainImageViews.size(); i++) {
+        vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+    }
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
+}
+
+void cleanup{
+    cleanupSwapChain();
+
+    for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
+        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+        vkDestroyFence(device, inFlightFences[i], nullptr);
+    }
+
+    vkDestroyCommandPool(device, commandPool, nullptr);
+    vkDestroyDevice(device, nullptr);
+
+    if(enableValidationLayers){
+        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    }
+
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroyInstance(instance, nullptr);
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+```
+
+The window resize process need to take into account the window size or the framebuffer size. In our application the window size is fixed prior to the run method, but cannot be changed. The dimensions (or extent) values assigned to the window are being used by the `chooseSwapExtent` method.
+Since now the resize is required, some issues can be changed, like the limitations of setting the window size only if the application is not running. Or changing the values of the window extent (win_width and win_height) dinamically, which will require us to retrieve the extend of the framebuffer. And this is easily done.
+
+On the method `chooseSwapExtent`, prior to the declaration of the actualExent, we probe the values from the framebuffer assigned to the window and pass to the probe instruction (`glfwGetFramebufferSize`) the references to store the width and the height.
+
+```C++
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+    ...
+    } else {
+        glfwGetFramebufferSize(window, &win_width, &win_height);
+
+        VkExtent actualExtent = {
+            static_cast<uint32_t>(win_width),
+            static_cast<uint32_t>(win_height)
+        };
+
+        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+        return actualExtent;
+
+    }
+}
+```
+
+And it is done, remove the window hint that prevented the window to be resized, compile and test your program.
+
+Yes, you see what happens when the windows is resized, and there is a reason for that. We haven't called the swapchain to be recreated. The canvas/surface got larger (or smaller) and the program crashed.
+
+In OpenGL this would be done using GLUT or other third party library, even GLFW. But Vulkan provides information to know when a swap chain is no longer adequate during presentation.
+The `vkAcquireNextImageKHR` and `vkQueuePresentKHR` instructions can return special values to indicate this.
+* VK_ERROR_OUT_OF_DATE_KHR identifies the swap chain incompatibility with the surface and can no longer be used for rendering. This happens after a window resize.
+* VK_SUBOPTIMAL_KHR indicates that the swap chain can still be used to present to the surface, but the surface properties no longer is a proper match.
+
+For the first signal the solution is to recreate the surface.
+For the second, the system will adjust or issue the first.
+
+The process needs to be queried when the image is acquired from the swap chain, that means, the `drawFrame` method, right after acquiring the image and right after presenting the image.
+
+```C++
+void drawFrame(){
+    ...
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+    if(result == VK_ERROR_OUT_OF_DATE_KHR){
+        recreateSwapChain();
+    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR){
+        throw std::runtime_error("Failed to acquire swap chain image!");
+    }
+    ...
+    vkQueuePresentKHR(presentQueue, &presentInfo);
+    // vkQueueWaitIdle(presentQueue);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+       
+        recreateSwapChain();
+    } else if (result != VK_SUCCESS) {
+        throw std::runtime_error("failed to present swap chain image!");
+    }
+    
+    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+
+```
+
+Some platforms or driver does not trigger the VK_ERROR_OUT_OF_DATE_KHR automatically after a window resize and since one of the purposes of this project is to write platform independent code (at least to some extent), this needs to be dealt in explicitly.
+First of all we need to know if a resize was triggered. So, declare a boolean private attribute for this purpose.
+Then, the verification routines, where we checked the `out of date` errors need to consider this information in the logical operation, reseting it right away if it was true.
+
+```C++
+bool framebufferResized = false;
+...
+void drawFrame(){
+    ...
+    vkQueuePresentKHR(presentQueue, &presentInfo);
+    // vkQueueWaitIdle(presentQueue);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+        framebufferResized = false;
+        recreateSwapChain();
+    } else if (result != VK_SUCCESS) {
+        throw std::runtime_error("failed to present swap chain image!");
+    }
+    
+    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+}
+```
+
+Finally code a callback to signal the window resizing. We'll code it as private static method because glfw mixes things up when dealing with the pointer operator `this`.
+
+To overcome this issue a bypass will be used, by playing with pointers, setting and arbitrary pointer to the window and retrieving the proper application in the callback.
+
+In the `initSystem`, right before exiting and after the window creation, code the following instructions:
+
+```C++
+glfwSetWindowUserPointer(window, this);
+glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+```
+
+It assigns to window the address of "this", but maintaining the proper value of `this->window`.
+
+Now to the callback just retrieve the proper casting for the (new) `window` value, that is, the WindowAppWrapper object and set the framebufferResized value to true.
+
+```C++
+static void framebufferResizeCallback(GLFWwindow* window, int width, int height){
+    auto app = reinterpret_cast<WindowAppWrapper*>(glfwGetWindowUserPointer(window));
+    app->framebufferResized = true;
+}
+```
+
+Great, compile and run to test the application. It Works! Resizing the window resizes the framebuffer... and the graphics!
+What about minimizing it?
+Oh!... there are errors informed by the validation layers! It says tha height and width must be greater than zero! And this demands one more treatment in recreateSwapChain.
+
+All you need to do is to wait events while width or height equals zero. Just adds two local variables starting with zero for the width and height verification and probe their values in the recreateSwapChain.
+
+```C++
+void recreateSwapChain(){
+    int width =0, height = 0;
+    while(width == 0 || height == 0){
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
+    ...
+}
+```
+
+Now you can compile it, run and check the result!
+Finally, the first Vulkan bootstrap without errors.
+Now let's learn how to provide vertices at runtime!
+
+Next: 
+    OpenGL: Plain Colored Triangle Programable Pipeline, Version 1 - The Fragment Shader Configuration
+    Vulkan: Vertex Input state, Assembly State and Input Buffers
