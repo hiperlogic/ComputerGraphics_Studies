@@ -74,7 +74,7 @@ Multiple frames can be produced (_in flight_) while still bounding the ammount o
 All we need to do is to specify the ammount of frames to be processed concurrently. This can be done declaring a constant.
 
 ```C++
-const int MAX_FRAMES_IN_FLIGHT = 2;
+const size_t MAX_FRAMES_IN_FLIGHT = 2;
 ```
 
 And specifying a pair of semaphores to each frame, not to the pipeline.
@@ -150,6 +150,139 @@ void drawFrame(){
 }
 ```
 
+You can compile it and run to check the results.
+And the results are... the messages are back. Yes, it is the same kind of messages we were having before adding the queue wait idle.
 
+That's because the semaphores for each frame provides a synchronization process from GPU to GPU, not between CPU and GPU, and the drawFrames method is called in the application, via CPU.
+
+To perform CPU-GPU synchronization there is a second type of synchronization primitive offered by Vulkan, the _fences_.
+Fences are similar to semaphores, they can be signaled and waited for, but this time we will code the wait in the code. So far, the semaphore wait is implemented in Vulkan API, we just specified which semaphore is to be checked.
+
+Right next to the semaphores, create the fence, one for each frame. Call it `inFlightFences`.
+
+```C++
+std::vector<VkFence> inFlightFences;
+```
+
+Since the sync objects are no longer just semaphores, rename the createSemaphores method to createSyncObjects.
+The fence is created via the `vkCreateFence` instruction. It needs the device the fence will monitor, the fenceInfo structure, the optional allocator callback and the memory address to store the fence object.
+The `VkFenceCreateInfo` structure can specify some flags for the fence creation. Since we will be waiting for the fence to be signaled in order to proceed with the frame generation, the fence will be created already signaled.
+
+```C++
+void createSyncObjects() {
+    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo = {};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+
+            throw std::runtime_error("failed to create synchronization objects for a frame!");
+        }
+    }
+}
+```
+
+and the destruction
+
+```C++
+void cleanup() {
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+        vkDestroyFence(device, inFlightFences[i], nullptr);
+    }
+
+    ...
+}
+```
+
+Now the fence can be used for synchronization. The `vkQueueSubmit` instruction accepts an optional parameter to pass a fence that should be signaled when the command buffer finishes executing. This signal will be used to indicate that a frame has finished.
+
+```C++
+void drawFrame(){
+    ...
+    if(vkQueueSubmit(graphicQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS){
+        ...
+    }
+    ...
+}
+```
+
+And the fences must be adjusted in order to make the drawFrame, that is, the CPU method, wait for them to be finished. For this the `vkWaitForFences` is called for the device, specifying how many fences to wait on, the array of fences, the waitAll condition and the timeout.
+As occurrs with semaphores, if the maximum value for an unsigned integer is passed, the timeout is not considered.
+The waitAll condition indicates if all the fences must be signaled in order to continue. If true and at least one fence is not signaled, the code waits for the condition to be met.
+
+```C++
+void drawFrame(){
+    vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &inFlightFences[currentFrame]);
+    ...
+}
+```
+
+The application can be compiled and executed. But there is a catch.
+If the number of MAX_FRAMES_IN_FLIGHT is higher than the number of swap chain images, or if vkAcquireNextImageKHR returns images out of order, then it is possible that the rendering may happen into a swap chain image tht is already _in flight_. This demands tracking, for each swap chain image, if a frame in flight is currently using it.
+We already are using fences to synchronize frames, and fences can have their states tracked. So, create another fence for images in flight and resize it on the createSyncObjects method. The imagesInFlight vector of fences will hold the number of images in the swap chain, all of the positions will be initialized with a null value.
+
+```C++
+void createSyncObjects() {
+    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
+
+    ...
+}
+```
+
+It is on the drawFrame method that the value will be queried. The image is acquired, in fact, the image index, and the index in the imagesInFlight will be compared. If the index holds a null, it is ready to be used, else, it needs to wait.
+Also, we have more calls to `vkWaitForFences`, so it is pertinent to move the `vkResetFences` call. A suggestion is to reset the fences right before actually using them, that means, right before submitting the information to the graphics queue.
+
+```C++
+    void drawFrame() { 
+        vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
+        uint32_t imageIndex;
+
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+        if(imagesInFlight[imageIndex] != VK_NULL_HANDLE){
+            vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+        }
+
+    ...
+
+        vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+        // Here is where the queue comes in place! Send the commands (in command buffer) to the Graphics queue
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to submit draw command buffer!");
+        }
+
+
+    ...
+```
+
+Now the system is synchronized. No more than two frames are enqueued and the synchronization process guarantees that they do not use the same image.
+
+There are more examples of synchronization scenarions provided by [Khronos](https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present) (TODO: Check out the synchronization examples)
+
+And now we can safely say that the shader hardcoded triangle is finaly completed, with the Vulkan bootstrap adequately configured. It was a lot of work, but once the Vulkan configuration process is understood, the remainder is general computer graphics. Vulkan provides extensive control of the device to the developer and that adds complexity.
+
+So, I'd say, we are closing the gap with OpenGL. 
+
+One thing though! We can't resize the windows!
+
+###  Swap chain recreation.
 
 Next: Plain Colored Triangle Retained Mode, Version 1 - The Fragment Shader Configuration
