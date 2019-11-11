@@ -621,5 +621,8 @@ For Vulkan each vertex has only 2 data, X and Y and that is why in the Vulkan sh
 
 Try changing the Vulkan vertex shader to be the same as the OpenGL vertex shader. Do not forget to change the Vulkan code as well!
 
+So far we set up the buffer and the memory location where the shaders can read the main input. This process, providing data via memcpy, is not the best approach, but gets the job done for our intention so far. But there are other shader inputs, the `uniform`s, that it important to highlight before addressing faster ways to send frequent dat1a.
+Those will be addressed in the next section.
+
 Next: 
-    OpenGL and Vulkan! Using the Application to change the triangle color.
+    OpenGL and Vulkan! Using the Application to change the triangle color. Uniforms in Shaders.
