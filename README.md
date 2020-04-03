@@ -1,4 +1,5 @@
 # ComputerGraphics_Studies
+`CHECK OTHER BRANCHES FOR CODE. THE BRANCHES REPRESENT THE PROGRESS`
 
 Repository to gather code related to OpenGL and Vulkan Studies and Explorations
 
